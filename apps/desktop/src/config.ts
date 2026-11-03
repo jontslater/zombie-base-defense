@@ -6,7 +6,9 @@ export type AppConfig = {
 
 const DEFAULT_RELAY =
   import.meta.env.VITE_RELAY_URL ??
-  (import.meta.env.DEV ? "ws://localhost:8787" : "wss://relay.example.com");
+  (import.meta.env.DEV
+    ? "ws://localhost:8787"
+    : "wss://relay-production-82e9.up.railway.app");
 
 let cached: AppConfig | null = null;
 

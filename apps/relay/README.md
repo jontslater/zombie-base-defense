@@ -19,7 +19,7 @@ Railway injects `PORT` automatically. The process binds to `0.0.0.0:$PORT`.
 { "ok": true, "service": "zbd-relay" }
 ```
 
-Configure Railway health checks to use `/health` (see `railway.json`).
+Configure Railway health checks to use `/health`. Build and deploy settings (Dockerfile path, health check path, restart policy) are configured on the Railway service in the dashboard, not in this repo.
 
 ## Desktop / browser client
 

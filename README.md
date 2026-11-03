@@ -67,7 +67,7 @@ Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench), `@zbd/relay
 
 ## Relay on Railway
 
-See [`apps/relay/README.md`](apps/relay/README.md). Build with `apps/relay/Dockerfile` and `apps/relay/railway.json` health check on `/health`.
+See [`apps/relay/README.md`](apps/relay/README.md). Build with `apps/relay/Dockerfile`; configure the Railway service health check on `/health` in the dashboard.
 
 ## Windows installer
 

@@ -85,6 +85,32 @@ describe("co-op relay (host + 2 guests)", () => {
     guest1.close();
     guest2.close();
   });
+
+  it("notifies the host once per guest join (not via broadcast)", async () => {
+    const host = await connectClient(port);
+    const guest = await connectClient(port);
+
+    host.send(JSON.stringify({ type: "create_room" }));
+    const created = await waitForMessage(host, "room_created");
+    const code = created.code as string;
+
+    const hostJoinEvents: Record<string, unknown>[] = [];
+    const onHostMessage = (raw: WebSocket.RawData) => {
+      const msg = JSON.parse(raw.toString()) as { type: string; [k: string]: unknown };
+      if (msg.type === "player_joined") hostJoinEvents.push(msg);
+    };
+    host.on("message", onHostMessage);
+
+    guest.send(JSON.stringify({ type: "redeem", code }));
+    await waitForMessage(guest, "redeem_result");
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(hostJoinEvents).toHaveLength(1);
+
+    host.off("message", onHostMessage);
+    host.close();
+    guest.close();
+  });
 });
 
 describe("relay health", () => {
