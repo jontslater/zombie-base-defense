@@ -1,0 +1,25 @@
+[package]
+name = "zbd-desktop"
+version = "0.1.0"
+description = "Zombie Base Defense strip"
+authors = ["zbd"]
+edition = "2021"
+
+[lib]
+name = "zbd_desktop_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["path"] }
+tauri-plugin-log = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"

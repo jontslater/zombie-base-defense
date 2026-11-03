@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zombie Base Defense</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-root"></div>
+      <div id="panel" class="panel hidden" aria-hidden="true">
+        <header class="panel-header">
+          <h1>Base Command</h1>
+          <button id="panel-close" type="button">Close</button>
+        </header>
+        <section class="panel-section">
+          <h2>Status</h2>
+          <div id="status-lines"></div>
+        </section>
+        <section class="panel-section">
+          <h2>Upgrades</h2>
+          <div id="upgrade-buttons" class="btn-row"></div>
+        </section>
+        <section class="panel-section">
+          <h2>Co-op</h2>
+          <div class="coop">
+            <button id="coop-host" type="button">Host (get code)</button>
+            <label>
+              Join code
+              <input id="coop-code" maxlength="6" placeholder="ABC123" />
+            </label>
+            <button id="coop-join" type="button">Join</button>
+            <p id="coop-status" class="muted"></p>
+          </div>
+        </section>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
