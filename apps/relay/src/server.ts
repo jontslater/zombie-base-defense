@@ -47,6 +47,7 @@ function broadcastRoom(room: Room, msg: RelayMessage, except?: WebSocket): void 
   for (const [ws, meta] of clients) {
     if (meta.roomCode !== room.code) continue;
     if (ws === except) continue;
+    if (meta.isHost) continue;
     if (ws.readyState === ws.OPEN) send(ws, msg);
   }
 }
