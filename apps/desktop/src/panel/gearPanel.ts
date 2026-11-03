@@ -16,6 +16,7 @@ import {
 } from "@zbd/sim";
 import type { GameRuntime, CommandInput } from "../game/runtime";
 import { gearPowerForSurvivor, gearStatDelta } from "../game/gearStats";
+import { appendSlotIcon } from "./gearIcons";
 
 export type PanelActions = {
   applyCommand: (cmd: CommandInput) => void;
@@ -109,6 +110,7 @@ function renderGearTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions):
     const row = document.createElement("div");
     row.className = "gear-slot-row";
     row.innerHTML = `<span class="slot-label">${slot}</span>`;
+    appendSlotIcon(row, slot);
     if (item) {
       const span = document.createElement("span");
       span.className = "gear-item";

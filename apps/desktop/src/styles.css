@@ -81,7 +81,9 @@ body:not(.expanded) .panel {
 }
 
 button {
-  background: #243447;
+  background:
+    url("/ui/button_square_border.png") center / 100% 100% no-repeat,
+    #243447;
   color: #e8eef5;
   border: 1px solid #3d5166;
   border-radius: 4px;
@@ -126,8 +128,18 @@ button:hover {
   margin-bottom: 8px;
 }
 
+.subtabs button {
+  background:
+    url("/ui/button_round_flat.png") center / 100% 100% no-repeat,
+    #243447;
+  min-width: 72px;
+}
+
 .subtabs button.active {
-  background: #3d5166;
+  background:
+    url("/ui/button_round_flat.png") center / 100% 100% no-repeat,
+    #3d5166;
+  outline: 1px solid #3d8bfd;
 }
 
 .subtab-panel.hidden {
@@ -151,9 +163,31 @@ button:hover {
 }
 
 .slot-label {
-  min-width: 64px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
   color: #9fb3c8;
   text-transform: capitalize;
+}
+
+.slot-icon {
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.panel-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-section h2::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  background: url("/ui/icon_circle.png") center / contain no-repeat;
+  opacity: 0.85;
 }
 
 button.selected {
