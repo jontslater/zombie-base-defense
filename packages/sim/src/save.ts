@@ -25,6 +25,10 @@ export function createInitialState(seed = 12345): GameState {
         skillPoints: 0,
         skills: {},
         gear: {},
+        stance: "aggressive",
+        target: "nearest",
+        controllerId: null,
+        aiControlUntilTick: null,
       },
       {
         id: "surv-2",
@@ -35,6 +39,10 @@ export function createInitialState(seed = 12345): GameState {
         skillPoints: 0,
         skills: {},
         gear: {},
+        stance: "aggressive",
+        target: "nearest",
+        controllerId: null,
+        aiControlUntilTick: null,
       },
     ],
     combat: null,
@@ -67,6 +75,12 @@ function migrateSave(env: SaveEnvelope): void {
   }
   for (const id of BASE_UPGRADE_IDS) {
     if (env.state.upgrades[id] === undefined) env.state.upgrades[id] = 0;
+  }
+  for (const s of env.state.survivors) {
+    if (!s.stance) s.stance = "aggressive";
+    if (!s.target) s.target = "nearest";
+    if (s.controllerId === undefined) s.controllerId = null;
+    if (s.aiControlUntilTick === undefined) s.aiControlUntilTick = null;
   }
 }
 

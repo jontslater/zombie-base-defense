@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 import {
   createRoom,
@@ -21,9 +21,12 @@ export type RelayMessage =
   | { type: "room_created"; code: string; expiresAtMs: number }
   | { type: "redeem"; code: string }
   | { type: "redeem_result"; ok: boolean; reason?: string; code?: string }
+  | { type: "player_joined"; clientId: string; roomCode: string }
+  | { type: "player_left"; clientId: string; roomCode: string }
   | { type: "guest_command"; from: string; payload: unknown }
   | { type: "host_snapshot"; payload: unknown }
   | { type: "host_delta"; payload: unknown }
+  | { type: "assign_survivor"; clientId: string; survivorId: string | null; joinAtTick?: number }
   | { type: "error"; message: string };
 
 const rooms = new Map<string, Room>();
@@ -46,6 +49,25 @@ function broadcastRoom(room: Room, msg: RelayMessage, except?: WebSocket): void 
     if (ws === except) continue;
     if (ws.readyState === ws.OPEN) send(ws, msg);
   }
+}
+
+function notifyHost(room: Room, msg: RelayMessage): void {
+  for (const [peer, peerMeta] of clients) {
+    if (peerMeta.roomCode === room.code && peerMeta.isHost && peer.readyState === peer.OPEN) {
+      send(peer, msg);
+    }
+  }
+}
+
+function handleHttp(req: IncomingMessage, res: ServerResponse): void {
+  const path = req.url?.split("?")[0] ?? "/";
+  if (path === "/health") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, service: "zbd-relay" }));
+    return;
+  }
+  res.writeHead(200, { "content-type": "text/plain" });
+  res.end("zbd relay ok");
 }
 
 function handleMessage(ws: WebSocket, raw: string): void {
@@ -81,21 +103,30 @@ function handleMessage(ws: WebSocket, raw: string): void {
       meta.roomCode = result.room.code;
       meta.isHost = result.room.hostId === meta.id;
       send(ws, { type: "redeem_result", ok: true, code: result.room.code });
-      break;
-    }
-    case "guest_command": {
-      if (!meta.roomCode) return;
-      const room = rooms.get(meta.roomCode);
-      if (!room) return;
-      for (const [peer, peerMeta] of clients) {
-        if (peerMeta.roomCode === room.code && peerMeta.isHost && peer !== ws) {
-          send(peer, { type: "guest_command", from: meta.id, payload: msg.payload });
-        }
+      if (!meta.isHost) {
+        notifyHost(result.room, {
+          type: "player_joined",
+          clientId: meta.id,
+          roomCode: result.room.code,
+        });
+        broadcastRoom(
+          result.room,
+          { type: "player_joined", clientId: meta.id, roomCode: result.room.code },
+          ws,
+        );
       }
       break;
     }
+    case "guest_command": {
+      if (!meta.roomCode || meta.isHost) return;
+      const room = rooms.get(meta.roomCode);
+      if (!room) return;
+      notifyHost(room, { type: "guest_command", from: meta.id, payload: msg.payload });
+      break;
+    }
     case "host_snapshot":
-    case "host_delta": {
+    case "host_delta":
+    case "assign_survivor": {
       if (!meta.isHost || !meta.roomCode) return;
       const room = rooms.get(meta.roomCode);
       if (!room) return;
@@ -112,10 +143,7 @@ function registerRoomLocal(room: Room): void {
 }
 
 export function createRelayServer(port = Number(process.env.PORT ?? 8787)) {
-  const httpServer = createServer((_req, res) => {
-    res.writeHead(200, { "content-type": "text/plain" });
-    res.end("zbd relay ok");
-  });
+  const httpServer = createServer(handleHttp);
 
   const wss = new WebSocketServer({ server: httpServer });
 
@@ -129,15 +157,46 @@ export function createRelayServer(port = Number(process.env.PORT ?? 8787)) {
     });
 
     ws.on("close", () => {
+      const meta = clients.get(ws);
+      if (meta?.roomCode) {
+        const room = rooms.get(meta.roomCode);
+        if (room) {
+          const leftMsg: RelayMessage = {
+            type: "player_left",
+            clientId: meta.id,
+            roomCode: room.code,
+          };
+          notifyHost(room, leftMsg);
+          broadcastRoom(room, leftMsg, ws);
+        }
+      }
       clients.delete(ws);
     });
   });
 
-  httpServer.listen(port, () => {
-    console.log(`relay listening on :${port}`);
-  });
-
-  return { httpServer, wss, rooms, clients };
+  return {
+    httpServer,
+    wss,
+    rooms,
+    clients,
+    listen: () =>
+      new Promise<void>((resolve) => {
+        httpServer.listen(port, () => {
+          console.log(`relay listening on :${port}`);
+          resolve();
+        });
+      }),
+  };
 }
 
-createRelayServer();
+export function resetRelayStateForTests(): void {
+  rooms.clear();
+  clients.clear();
+}
+
+const isMain =
+  typeof process.argv[1] === "string" && process.argv[1].includes("server");
+
+if (isMain) {
+  void createRelayServer().listen();
+}

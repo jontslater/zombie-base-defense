@@ -1,14 +1,15 @@
-const DEFAULT_URL =
-  import.meta.env.VITE_RELAY_URL ??
-  (import.meta.env.DEV ? "ws://localhost:8787" : "wss://relay.example.com");
+import { getRelayUrl } from "../config";
 
 export type RelayHandlers = {
   onHello: (clientId: string) => void;
   onRoomCreated: (code: string, expiresAtMs: number) => void;
   onRedeemResult: (ok: boolean, reason?: string, code?: string) => void;
+  onPlayerJoined: (clientId: string) => void;
+  onPlayerLeft: (clientId: string) => void;
   onGuestCommand: (from: string, payload: unknown) => void;
   onHostSnapshot: (payload: unknown) => void;
   onHostDelta: (payload: unknown) => void;
+  onAssignSurvivor: (clientId: string, survivorId: string | null, joinAtTick?: number) => void;
 };
 
 export class RelayClient {
@@ -19,7 +20,7 @@ export class RelayClient {
     this.handlers = handlers;
   }
 
-  connect(url = DEFAULT_URL): void {
+  connect(url = getRelayUrl()): void {
     if (this.ws) this.ws.close();
     this.ws = new WebSocket(url);
     this.ws.onmessage = (ev) => {
@@ -32,7 +33,17 @@ export class RelayClient {
           this.handlers.onRoomCreated(msg.code as string, msg.expiresAtMs as number);
           break;
         case "redeem_result":
-          this.handlers.onRedeemResult(msg.ok as boolean, msg.reason as string | undefined, msg.code as string | undefined);
+          this.handlers.onRedeemResult(
+            msg.ok as boolean,
+            msg.reason as string | undefined,
+            msg.code as string | undefined,
+          );
+          break;
+        case "player_joined":
+          this.handlers.onPlayerJoined(msg.clientId as string);
+          break;
+        case "player_left":
+          this.handlers.onPlayerLeft(msg.clientId as string);
           break;
         case "guest_command":
           this.handlers.onGuestCommand(msg.from as string, msg.payload);
@@ -42,6 +53,13 @@ export class RelayClient {
           break;
         case "host_delta":
           this.handlers.onHostDelta(msg.payload);
+          break;
+        case "assign_survivor":
+          this.handlers.onAssignSurvivor(
+            msg.clientId as string,
+            msg.survivorId as string | null,
+            msg.joinAtTick as number | undefined,
+          );
           break;
       }
     };
@@ -69,5 +87,9 @@ export class RelayClient {
 
   sendHostDelta(payload: unknown): void {
     this.send({ type: "host_delta", payload });
+  }
+
+  sendAssignSurvivor(clientId: string, survivorId: string | null, joinAtTick?: number): void {
+    this.send({ type: "assign_survivor", clientId, survivorId, joinAtTick });
   }
 }

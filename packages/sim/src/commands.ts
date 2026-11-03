@@ -1,5 +1,6 @@
-import { BASE_UPGRADE_IDS, SKILL_COSTS, SKILL_PREREQS } from "./constants.js";
-import type { BaseUpgradeId, GearSlot, SkillNodeId } from "./constants.js";
+import { BASE_UPGRADE_IDS, SKILL_COSTS, SKILL_PREREQS, WORKBENCH_ENHANCE_SCRAP, WORKBENCH_REROLL_CURRENCY, WORKBENCH_REROLL_SCRAP, RARITIES, RARITY_WEIGHTS, type Rarity } from "./constants.js";
+import type { BaseUpgradeId, GearSlot, SkillNodeId, Stance, TargetMode } from "./constants.js";
+import { pickWeighted, rollInt, withRng } from "./rng.js";
 import { startWave } from "./waves.js";
 import type { GameState } from "./types.js";
 
@@ -42,6 +43,30 @@ export type SetSurvivorNameCommand = CommandBase & {
   name: string;
 };
 
+export type SetStanceCommand = CommandBase & {
+  type: "SET_STANCE";
+  survivorId: string;
+  stance: Stance;
+};
+
+export type SetTargetCommand = CommandBase & {
+  type: "SET_TARGET";
+  survivorId: string;
+  target: TargetMode;
+};
+
+export type WorkbenchEnhanceCommand = CommandBase & {
+  type: "WORKBENCH_ENHANCE";
+  survivorId: string;
+  slot?: GearSlot;
+  inventoryIndex?: number;
+};
+
+export type WorkbenchRerollCommand = CommandBase & {
+  type: "WORKBENCH_REROLL";
+  inventoryIndex: number;
+};
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -49,7 +74,11 @@ export type GameCommand =
   | EquipGearCommand
   | UnequipGearCommand
   | SpendSkillCommand
-  | SetSurvivorNameCommand;
+  | SetSurvivorNameCommand
+  | SetStanceCommand
+  | SetTargetCommand
+  | WorkbenchEnhanceCommand
+  | WorkbenchRerollCommand;
 
 export function upgradeCost(level: number): number {
   return Math.floor(25 * Math.pow(1.55, level));
@@ -131,6 +160,68 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
         s.id === cmd.survivorId ? { ...s, name: cmd.name.slice(0, 24) } : s,
       );
       return { ...state, survivors };
+    }
+    case "SET_STANCE": {
+      const survivors = state.survivors.map((s) =>
+        s.id === cmd.survivorId ? { ...s, stance: cmd.stance } : s,
+      );
+      return { ...state, survivors };
+    }
+    case "SET_TARGET": {
+      const survivors = state.survivors.map((s) =>
+        s.id === cmd.survivorId ? { ...s, target: cmd.target } : s,
+      );
+      return { ...state, survivors };
+    }
+    case "WORKBENCH_ENHANCE": {
+      if (state.upgrades.workbench <= 0) return state;
+      if (state.scrap < WORKBENCH_ENHANCE_SCRAP) return state;
+      let inventory = [...state.inventory];
+      const survivors = state.survivors.map((s) => {
+        if (s.id !== cmd.survivorId) return s;
+        if (cmd.inventoryIndex !== undefined) {
+          const item = inventory[cmd.inventoryIndex];
+          if (!item) return s;
+          inventory = inventory.map((it, i) =>
+            i === cmd.inventoryIndex ? { ...it, power: it.power + 1 + state.upgrades.workbench } : it,
+          );
+          return s;
+        }
+        const slot = cmd.slot ?? "weapon";
+        const item = s.gear[slot];
+        if (!item) return s;
+        return {
+          ...s,
+          gear: {
+            ...s.gear,
+            [slot]: { ...item, power: item.power + 1 + state.upgrades.workbench },
+          },
+        };
+      });
+      return { ...state, scrap: state.scrap - WORKBENCH_ENHANCE_SCRAP, inventory, survivors };
+    }
+    case "WORKBENCH_REROLL": {
+      if (state.upgrades.workbench <= 0) return state;
+      if (state.scrap < WORKBENCH_REROLL_SCRAP || state.currency < WORKBENCH_REROLL_CURRENCY) {
+        return state;
+      }
+      const item = state.inventory[cmd.inventoryIndex];
+      if (!item) return state;
+      const { result, rngState } = withRng(state, (rng) => {
+        const rarity = pickWeighted(rng, RARITY_WEIGHTS) as Rarity;
+        const rarityIndex = RARITIES.indexOf(rarity);
+        const power = Math.floor(item.power * (0.85 + rarityIndex * 0.08) + rollInt(rng, 1, 4));
+        return { ...item, rarity, power: Math.max(1, power) };
+      });
+      if (!result) return state;
+      const inventory = state.inventory.map((it, i) => (i === cmd.inventoryIndex ? result : it));
+      return {
+        ...state,
+        scrap: state.scrap - WORKBENCH_REROLL_SCRAP,
+        currency: state.currency - WORKBENCH_REROLL_CURRENCY,
+        inventory,
+        rngState,
+      };
     }
   }
 }
