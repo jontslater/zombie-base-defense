@@ -4,6 +4,7 @@ import {
   RARITY_WEIGHTS,
   type Rarity,
 } from "./constants.js";
+import { stanceDamageMultiplier, targetFocusMultiplier } from "./coop.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import type { GameState, GearItem, WaveCombat } from "./types.js";
 
@@ -38,12 +39,15 @@ export function startWave(state: GameState): GameState {
 export function survivorDps(state: GameState): number {
   const turretLevel = state.upgrades.turret;
   const turretBonus = turretLevel * 2;
+  const bossWave = waveIsBoss(state.wave);
   return state.survivors.reduce((sum, s) => {
     let dmg = s.damage;
     if (s.skills.damage_1) dmg *= 1.1;
     if (s.skills.damage_2) dmg *= 1.15;
     const weapon = s.gear.weapon;
     if (weapon) dmg += weapon.power * 0.5;
+    dmg *= stanceDamageMultiplier(s.stance);
+    dmg *= targetFocusMultiplier(s.target, bossWave);
     return sum + dmg;
   }, turretBonus);
 }

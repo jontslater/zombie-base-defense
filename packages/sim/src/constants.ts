@@ -4,7 +4,7 @@ export const TICKS_PER_SECOND = 10;
 /** Max offline catch-up (8 hours). */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export const BOSS_EVERY_N_WAVES = 10;
 
@@ -68,4 +68,30 @@ export const SKILL_COSTS: Record<SkillNodeId, number> = {
 
 export const SKILL_PREREQS: Partial<Record<SkillNodeId, SkillNodeId>> = {
   damage_2: "damage_1",
+};
+
+export const STANCES = ["aggressive", "defensive", "support"] as const;
+export type Stance = (typeof STANCES)[number];
+
+export const TARGET_MODES = ["nearest", "boss", "weakest"] as const;
+export type TargetMode = (typeof TARGET_MODES)[number];
+
+/** Co-op guest spawns on the next 5s boundary (sim ticks). */
+export const COOP_JOIN_INTERVAL_TICKS = 5 * TICKS_PER_SECOND;
+
+/** After disconnect, AI controls the survivor for 60s of sim time. */
+export const COOP_AI_GRACE_TICKS = 60 * TICKS_PER_SECOND;
+
+export const WORKBENCH_ENHANCE_SCRAP = 3;
+export const WORKBENCH_REROLL_SCRAP = 5;
+export const WORKBENCH_REROLL_CURRENCY = 10;
+
+export const RARITY_COLORS: Record<Rarity, string> = {
+  Common: "#9aa5b1",
+  Uncommon: "#2ecc71",
+  Rare: "#3498db",
+  Epic: "#9b59b6",
+  Legendary: "#f1c40f",
+  Mythic: "#e67e22",
+  Apocalyptic: "#e74c3c",
 };

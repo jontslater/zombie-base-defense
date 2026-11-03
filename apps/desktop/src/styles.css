@@ -119,3 +119,61 @@ button:hover {
   font-size: 0.75rem;
   line-height: 1.4;
 }
+
+.subtabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.subtabs button.active {
+  background: #3d5166;
+}
+
+.subtab-panel.hidden {
+  display: none;
+}
+
+.gear-slots,
+.inventory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+.gear-slot-row,
+.inventory-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.slot-label {
+  min-width: 64px;
+  color: #9fb3c8;
+  text-transform: capitalize;
+}
+
+button.selected {
+  outline: 1px solid #3d8bfd;
+}
+
+.skill-tree {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.panel-section h3 {
+  font-size: 0.8rem;
+  margin: 8px 0 4px;
+}

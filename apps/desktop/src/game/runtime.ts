@@ -14,6 +14,10 @@ import {
   type UnequipGearCommand,
   type SpendSkillCommand,
   type SetSurvivorNameCommand,
+  type SetStanceCommand,
+  type SetTargetCommand,
+  type WorkbenchEnhanceCommand,
+  type WorkbenchRerollCommand,
 } from "@zbd/sim";
 
 const SAVE_KEY = "zbd_save_v1";
@@ -21,9 +25,11 @@ const SAVE_KEY = "zbd_save_v1";
 export type GameRuntime = {
   state: GameState;
   playerId: string;
+  relayClientId: string | null;
   lastSaveMs: number;
   inCoopRoom: boolean;
   isCoopHost: boolean;
+  assignedSurvivorId: string | null;
 };
 
 export function newRuntime(seed?: number): GameRuntime {
@@ -31,9 +37,11 @@ export function newRuntime(seed?: number): GameRuntime {
   return {
     state: createInitialState(seed ?? (now % 100000)),
     playerId: `local-${now}`,
+    relayClientId: null,
     lastSaveMs: now,
     inCoopRoom: false,
     isCoopHost: false,
+    assignedSurvivorId: null,
   };
 }
 
@@ -47,9 +55,11 @@ export async function loadRuntime(): Promise<GameRuntime> {
     return {
       state: withOffline,
       playerId: `local-${savedAtMs}`,
+      relayClientId: null,
       lastSaveMs: now,
       inCoopRoom: false,
       isCoopHost: false,
+      assignedSurvivorId: null,
     };
   } catch {
     return newRuntime();
@@ -98,7 +108,11 @@ export type CommandInput =
   | StripMeta<EquipGearCommand>
   | StripMeta<UnequipGearCommand>
   | StripMeta<SpendSkillCommand>
-  | StripMeta<SetSurvivorNameCommand>;
+  | StripMeta<SetSurvivorNameCommand>
+  | StripMeta<SetStanceCommand>
+  | StripMeta<SetTargetCommand>
+  | StripMeta<WorkbenchEnhanceCommand>
+  | StripMeta<WorkbenchRerollCommand>;
 
 export function issueCommand(rt: GameRuntime, partial: CommandInput): GameRuntime {
   const cmd = {

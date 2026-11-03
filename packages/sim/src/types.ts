@@ -14,6 +14,12 @@ export type SurvivorState = {
   skillPoints: number;
   skills: Partial<Record<import("./constants.js").SkillNodeId, true>>;
   gear: Partial<Record<import("./constants.js").GearSlot, GearItem>>;
+  stance: import("./constants.js").Stance;
+  target: import("./constants.js").TargetMode;
+  /** Relay client id when a human controls this survivor; null = host/local AI. */
+  controllerId: string | null;
+  /** Sim tick until AI control after guest disconnect; null when not in grace. */
+  aiControlUntilTick: number | null;
 };
 
 export type BaseUpgrades = Record<

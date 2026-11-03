@@ -1,12 +1,12 @@
-# Zombie Base Defense — Milestone 1
+# Zombie Base Defense — Milestone 2
 
-Desktop-first idle base defense against zombie waves. The simulation is headless and deterministic; the desktop app renders a **400×80** strip (taskbar-adjacent) with an expandable command panel. Co-op uses a small WebSocket relay with invite codes.
+Desktop-first idle base defense against zombie waves. The simulation is headless and deterministic; the desktop app renders a **400×80** strip (taskbar-adjacent) with an expandable command panel. Co-op uses a WebSocket relay with invite codes.
 
 ## Requirements
 
 - Node.js 20+
 - [pnpm](https://pnpm.io/) 10+
-- Rust toolchain (only for `pnpm tauri:dev` / native builds)
+- Rust toolchain (for `pnpm tauri:dev` / native builds)
 
 ## Install
 
@@ -30,9 +30,14 @@ pnpm dev:relay
 
 Open http://localhost:5173. Click the strip to expand the panel. Saves use `localStorage` key `zbd_save_v1` in the browser.
 
-Environment:
+### Environment
 
-- `VITE_RELAY_URL` — WebSocket URL (default `ws://localhost:8787` in dev)
+| Variable | Where | Description |
+| --- | --- | --- |
+| `VITE_RELAY_URL` | `apps/desktop/.env` | WebSocket URL for co-op (default `ws://localhost:8787` in dev) |
+| `PORT` | Relay host | Listen port (`8787` locally; Railway sets automatically) |
+
+Tauri reads optional `strip_config.json` from app data (`relayUrl`, strip position, click-through). See `apps/relay/README.md` for relay deployment.
 
 ## Run native strip (Tauri 2)
 
@@ -41,7 +46,7 @@ cd apps/desktop
 pnpm tauri:dev
 ```
 
-The window is configured **400×80**, always-on-top. Versioned JSON saves are written to the app data directory via Tauri `read_save` / `write_save` commands when running under Tauri.
+The window is **400×80**, always-on-top, and docks above the Windows taskbar using the monitor work area (position remembered in `strip_config.json`). Optional click-through toggles in the panel.
 
 ## Tests
 
@@ -49,41 +54,40 @@ The window is configured **400×80**, always-on-top. Versioned JSON saves are wr
 pnpm test
 ```
 
-Covers `@zbd/sim` (waves, loot RNG, save round-trip, offline cap) and `@zbd/relay` (invite create/redeem/expire/rate limit).
+Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench), `@zbd/relay` (invites, `/health`, host + 2 guests integration).
 
 ## Monorepo layout
 
 | Path | Purpose |
 | --- | --- |
-| `packages/sim` | Deterministic tick sim, serializable commands, save/offline |
+| `packages/sim` | Deterministic tick sim, gear/skills/workbench commands, co-op helpers, deltas |
 | `apps/desktop` | Vite + Phaser 3 + Tauri shell |
-| `apps/relay` | Node WebSocket relay for host-authoritative co-op |
-| `assets/` | Placeholder CC0 sprites + `ASSETS.md` |
+| `apps/relay` | Node WebSocket relay (`/health`, Railway-ready) |
+| `assets/` | CC0 placeholders + `ASSETS.md` |
 
 ## Relay on Railway
 
-Build from repo root using `apps/relay/Dockerfile`:
+See [`apps/relay/README.md`](apps/relay/README.md). Build with `apps/relay/Dockerfile` and `apps/relay/railway.json` health check on `/health`.
+
+## Windows installer
+
+Unsigned NSIS/MSI bundles are produced by GitHub Actions (`.github/workflows/build-windows.yml`) on pull requests and version tags. Local build:
 
 ```bash
-docker build -f apps/relay/Dockerfile -t zbd-relay .
-docker run -p 8787:8787 zbd-relay
+cd apps/desktop && pnpm tauri build
 ```
 
-Set `PORT` as required by Railway.
+## Co-op model (M2)
 
-## Co-op model (M1)
+1. Host **Host (get code)** → relay returns a 6-character code.
+2. Guests **Join**; host schedules spawn on the next **5s** sim boundary.
+3. Each guest controls their assigned survivor (gear, skills, stance, targeting) via relay commands; host validates and applies.
+4. Host broadcasts **deltas** each tick and snapshots after commands.
+5. On disconnect, the survivor runs on AI for **60s**, then leaves; equipped loot returns to shared inventory.
 
-1. Host clicks **Host (get code)** → relay returns a 6-character code (15-minute TTL, max 4 players).
-2. Guests **Join** with the code (rate-limited to 5 failed redeems/min/IP).
-3. Guest upgrade commands are forwarded to the host; the host runs `@zbd/sim` and broadcasts snapshots.
+## Layout
 
-## Known gaps (Milestone 1)
-
-- Art is 16×16 placeholders; Kenney packs are documented but not imported yet.
-- Co-op: guests do not simulate combat locally; only the host advances ticks. Delta sync is minimal.
-- Gear equip / skill UI is not in the panel yet (sim + commands exist).
-- Linux/macOS/Windows taskbar positioning and click-through are not customized per platform.
-- Tauri production bundling and code signing are not configured.
+Survivors render on the **left** (facing right). Zombies render on the **right** (facing left). Base core on the far right.
 
 ## License
 

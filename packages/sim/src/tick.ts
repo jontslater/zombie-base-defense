@@ -1,3 +1,4 @@
+import { processAiGraceDepartures } from "./coop.js";
 import { TICKS_PER_SECOND, WAVE_PENALTY_ON_CORE_FALL } from "./constants.js";
 import { applyCommand, type GameCommand } from "./commands.js";
 import { withRng } from "./rng.js";
@@ -22,7 +23,7 @@ function generatorIncome(state: GameState): GameState {
 }
 
 export function simTick(state: GameState): GameState {
-  let s: GameState = { ...state, tick: state.tick + 1 };
+  let s: GameState = processAiGraceDepartures({ ...state, tick: state.tick + 1 });
   s = regenSurvivors(s);
   s = generatorIncome(s);
 
