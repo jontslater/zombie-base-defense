@@ -100,6 +100,7 @@ describe("save round-trip", () => {
     expect(env.state.lifetimeCurrencyEarned).toBe(INITIAL_CURRENCY);
     expect(env.state.currentStageKey).toBe(stageKeyFromCampaignWave(4));
     expect(env.state.campaignHighestClearedKey).toBeGreaterThanOrEqual(-1);
+    expect(env.state.perimeterUnlocked).toEqual({});
   });
 
   it("rejects invalid save envelopes", () => {

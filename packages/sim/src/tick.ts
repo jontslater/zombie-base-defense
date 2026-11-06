@@ -10,13 +10,18 @@ import {
   rebornIncomeMultiplier,
 } from "./constants.js";
 import { applyCommand, type GameCommand } from "./commands.js";
+import {
+  perimeterCoreMitigationMult,
+  perimeterCurrencyIncomeMult,
+  perimeterTrapFrequencyDivisorBonus,
+} from "./perimeter.js";
 import { withRng } from "./rng.js";
 import type { GameState } from "./types.js";
 import { buildWaveCombat, rollLoot, startWave, survivorDps } from "./waves.js";
 
 function grantCurrency(state: GameState, amount: number): GameState {
   if (amount <= 0) return state;
-  const mult = rebornIncomeMultiplier(state.rebornCount);
+  const mult = rebornIncomeMultiplier(state.rebornCount) * perimeterCurrencyIncomeMult(state);
   const gained = Math.floor(amount * mult);
   return {
     ...state,
@@ -48,7 +53,9 @@ export function simTick(state: GameState): GameState {
   s = generatorIncome(s);
 
   if (!s.combat) {
-    if (s.tick % (TICKS_PER_SECOND * 3) === 0) s = startWave(s);
+    const trapDiv = 3 + perimeterTrapFrequencyDivisorBonus(s);
+    const idleWaveEveryTicks = Math.max(1, TICKS_PER_SECOND * trapDiv);
+    if (s.tick % idleWaveEveryTicks === 0) s = startWave(s);
     return s;
   }
 
@@ -97,7 +104,8 @@ export function simTick(state: GameState): GameState {
   }
 
   const inbound = combat.zombieDamage / TICKS_PER_SECOND;
-  const baseCoreHp = s.baseCoreHp - inbound * 0.35;
+  const coreMit = perimeterCoreMitigationMult(s);
+  const baseCoreHp = s.baseCoreHp - inbound * 0.35 * (coreMit > 0 ? 1 / coreMit : 1);
   const survivors = s.survivors.map((sv) => ({
     ...sv,
     hp: Math.max(0, sv.hp - (inbound * 0.15) / Math.max(1, s.survivors.length)),

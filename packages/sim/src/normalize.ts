@@ -3,19 +3,28 @@ import {
   GEAR_SLOTS,
   INITIAL_CURRENCY,
   MATERIAL_IDS,
+  PERIMETER_NODE_IDS,
   RARITIES,
   STANCES,
   TARGET_MODES,
   type BaseUpgradeId,
   type GearSlot,
   type MaterialId,
+  type PerimeterNodeId,
   type Rarity,
   type SkillNodeId,
   type Stance,
   type TargetMode,
 } from "./constants.js";
 import { CAMPAIGN_LAST_STAGE_KEY, stageKeyFromCampaignWave } from "./campaign.js";
-import type { GearItem, GameState, Materials, SurvivorState, WaveCombat } from "./types.js";
+import type {
+  GearItem,
+  GameState,
+  Materials,
+  PerimeterUnlocked,
+  SurvivorState,
+  WaveCombat,
+} from "./types.js";
 
 function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -92,6 +101,16 @@ function normalizeMaterials(raw: unknown): Materials {
     if (typeof v === "number" && Number.isFinite(v)) {
       out[idTyped] = Math.max(0, Math.floor(v));
     }
+  }
+  return out;
+}
+
+function normalizePerimeterUnlocked(raw: unknown): PerimeterUnlocked {
+  const out: PerimeterUnlocked = {};
+  if (!raw || typeof raw !== "object") return out;
+  const o = raw as Record<string, unknown>;
+  for (const id of PERIMETER_NODE_IDS) {
+    if (o[id] === true) out[id as PerimeterNodeId] = true;
   }
   return out;
 }
@@ -211,6 +230,8 @@ export function normalizeGameState(raw: unknown): GameState {
       ? Math.max(-1, Math.min(CAMPAIGN_LAST_STAGE_KEY, Math.floor(hkRaw)))
       : -1;
 
+  const perimeterUnlocked = normalizePerimeterUnlocked(o.perimeterUnlocked);
+
   return {
     tick: Math.max(0, Math.floor(num(o.tick, 0))),
     wave: waveN,
@@ -226,6 +247,7 @@ export function normalizeGameState(raw: unknown): GameState {
     combat: normalizeCombat(o.combat),
     inventory,
     totalKills: Math.max(0, Math.floor(num(o.totalKills, 0))),
+    perimeterUnlocked,
     rebornCount,
     lifetimeCurrencyEarned,
     rngState: num(o.rngState, 1) >>> 0,

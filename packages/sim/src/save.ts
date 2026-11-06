@@ -27,6 +27,7 @@ export function createInitialState(seed = 12345): GameState {
     materials: emptyMaterials(),
     baseCoreHp: 200,
     baseCoreMaxHp: 200,
+    perimeterUnlocked: {},
     upgrades: {
       wall: 0,
       turret: 0,
@@ -117,6 +118,7 @@ function migrateSave(env: SaveEnvelope): void {
   if (env.state.lifetimeCurrencyEarned === undefined) {
     env.state.lifetimeCurrencyEarned = INITIAL_CURRENCY;
   }
+  if (!env.state.perimeterUnlocked) env.state.perimeterUnlocked = {};
   for (const s of env.state.survivors) {
     if (!s.stance) s.stance = "aggressive";
     if (!s.target) s.target = "nearest";

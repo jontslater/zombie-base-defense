@@ -11,6 +11,11 @@ import {
   type Rarity,
 } from "./constants.js";
 import { stanceDamageMultiplier, targetFocusMultiplier } from "./coop.js";
+import {
+  perimeterLootDropChanceAdd,
+  perimeterRarityBandShiftMult,
+  perimeterSurvivorDpsMult,
+} from "./perimeter.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import type { GameState, GearItem, WaveCombat } from "./types.js";
 
@@ -58,7 +63,7 @@ export function survivorDps(state: GameState): number {
     dmg *= targetFocusMultiplier(s.target, bossWave);
     return sum + dmg;
   }, 0);
-  return (fromSurvivors + turretBonus) * dpsMult;
+  return (fromSurvivors + turretBonus) * dpsMult * perimeterSurvivorDpsMult(state);
 }
 
 export function survivorEffectiveHp(state: GameState): number {
@@ -77,10 +82,17 @@ export function rollLoot(state: GameState, wave: number): { state: GameState; it
     state.survivors.reduce((b, s) => (s.skills.loot_1 ? b + 0.05 : b), 0);
 
   const { result, rngState } = withRng(state, (rng) => {
-    const dropChance = Math.min(0.65, 0.15 + wave * 0.008 + lootBonus);
+    const dropChance = Math.min(
+      0.65,
+      0.15 + wave * 0.008 + lootBonus + perimeterLootDropChanceAdd(state),
+    );
     if (rng.next() > dropChance) return null;
 
     const weights = { ...RARITY_WEIGHTS };
+    const bandShift = perimeterRarityBandShiftMult(state);
+    for (const r of RARITIES) {
+      if (r !== "Common") weights[r] = Math.floor(weights[r] * bandShift);
+    }
     if (wave >= 20) weights.Apocalyptic = weights.Apocalyptic * 2;
     if (wave >= 10) weights.Mythic = weights.Mythic * 1.5;
 

@@ -22,6 +22,7 @@ import {
   type SynthesisCombineCommand,
   type AlchemyForgeCommand,
   type SetCampaignStageCommand,
+  type BuyPerimeterNodeCommand,
 } from "@zbd/sim";
 
 const SAVE_KEY = "zbd_save_v1";
@@ -120,7 +121,8 @@ export type CommandInput =
   | StripMeta<SalvageGearCommand>
   | StripMeta<SynthesisCombineCommand>
   | StripMeta<AlchemyForgeCommand>
-  | StripMeta<SetCampaignStageCommand>;
+  | StripMeta<SetCampaignStageCommand>
+  | StripMeta<BuyPerimeterNodeCommand>;
 
 export function issueCommand(rt: GameRuntime, partial: CommandInput): GameRuntime {
   const cmd = {

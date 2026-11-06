@@ -2,8 +2,10 @@ import {
   ALCHEMY_FORGE_CURRENCY,
   ALCHEMY_FORGE_MATERIALS,
   ALCHEMY_FORGE_SCRAP,
+  campaignWaveNumberFromStageKey,
   GEAR_SLOTS,
   MATERIAL_IDS,
+  PERIMETER_GRID,
   RARITIES,
   RARITY_COLORS,
   SKILL_COSTS,
@@ -16,6 +18,8 @@ import {
   WORKBENCH_ENHANCE_SCRAP,
   WORKBENCH_REROLL_CURRENCY,
   WORKBENCH_REROLL_SCRAP,
+  perimeterSecondForgeUnlocked,
+  tryBuyPerimeterNode,
   type GearSlot,
   type SkillNodeId,
   type Stance,
@@ -36,15 +40,18 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
       <button type="button" data-subtab="gear" class="active">Gear</button>
       <button type="button" data-subtab="skills">Skills</button>
       <button type="button" data-subtab="workbench">Workbench</button>
+      <button type="button" data-subtab="perimeter">Perimeter</button>
     </div>
     <div id="subtab-gear" class="subtab-panel"></div>
     <div id="subtab-skills" class="subtab-panel hidden"></div>
     <div id="subtab-workbench" class="subtab-panel hidden"></div>
+    <div id="subtab-perimeter" class="subtab-panel hidden"></div>
   `;
 
   const gearEl = root.querySelector("#subtab-gear") as HTMLElement;
   const skillsEl = root.querySelector("#subtab-skills") as HTMLElement;
   const benchEl = root.querySelector("#subtab-workbench") as HTMLElement;
+  const perimeterEl = root.querySelector("#subtab-perimeter") as HTMLElement;
 
   root.querySelectorAll<HTMLButtonElement>("[data-subtab]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -54,6 +61,7 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
       gearEl.classList.toggle("hidden", tab !== "gear");
       skillsEl.classList.toggle("hidden", tab !== "skills");
       benchEl.classList.toggle("hidden", tab !== "workbench");
+      perimeterEl.classList.toggle("hidden", tab !== "perimeter");
     });
   });
 
@@ -70,6 +78,7 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
     renderGearTab(gearEl, rt, actions);
     renderSkillsTab(skillsEl, rt, actions);
     renderWorkbenchTab(benchEl, rt, actions, synthesisPick);
+    renderPerimeterTab(perimeterEl, rt, actions);
   };
 
   (root as HTMLElement & { refreshGearPanel?: () => void }).refreshGearPanel = render;
@@ -271,12 +280,15 @@ function renderWorkbenchTab(
   alchemyTitle.textContent = "Alchemy forge";
   el.appendChild(alchemyTitle);
 
-  const alchemyP = document.createElement("p");
-  alchemyP.className = "muted";
+  const forgeCur = perimeterSecondForgeUnlocked(rt.state)
+    ? Math.max(1, ALCHEMY_FORGE_CURRENCY - 5)
+    : ALCHEMY_FORGE_CURRENCY;
   const matCost = MATERIAL_IDS.filter((id) => ALCHEMY_FORGE_MATERIALS[id] > 0)
     .map((id) => `${id}×${ALCHEMY_FORGE_MATERIALS[id]}`)
     .join(", ");
-  alchemyP.textContent = `Roll one item into a chosen slot: ${ALCHEMY_FORGE_SCRAP} scrap + ${ALCHEMY_FORGE_CURRENCY}c + ${matCost}`;
+  const alchemyP = document.createElement("p");
+  alchemyP.className = "muted";
+  alchemyP.textContent = `Roll one item into a chosen slot: ${ALCHEMY_FORGE_SCRAP} scrap + ${forgeCur}c + ${matCost}`;
   el.appendChild(alchemyP);
 
   const forgeRow = document.createElement("div");
@@ -291,6 +303,13 @@ function renderWorkbenchTab(
     forgeRow.appendChild(btn);
   }
   el.appendChild(forgeRow);
+
+  if (perimeterSecondForgeUnlocked(rt.state)) {
+    const aux = document.createElement("p");
+    aux.className = "muted";
+    aux.textContent = "Aux bench line: forge currency cost is reduced.";
+    el.appendChild(aux);
+  }
 
   const synTitle = document.createElement("h3");
   synTitle.textContent = "Synthesis crucible";
@@ -398,4 +417,84 @@ function renderWorkbenchTab(
     inv.appendChild(row);
   });
   el.appendChild(inv);
+}
+
+function formatPerimeterCosts(
+  costs: (typeof PERIMETER_GRID)[number]["costs"],
+): string {
+  return costs
+    .map((c) => {
+      if (c.kind === "currency") return `${c.amount}c`;
+      if (c.kind === "scrap") return `${c.amount} scrap`;
+      const parts = MATERIAL_IDS.filter((id) => (c.materials[id] ?? 0) > 0).map(
+        (id) => `${id}×${c.materials[id]}`,
+      );
+      return parts.join(", ");
+    })
+    .join(" + ");
+}
+
+function renderPerimeterTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions): void {
+  el.innerHTML = "";
+  const h = document.createElement("h3");
+  h.textContent = "Perimeter grid";
+  el.appendChild(h);
+  const intro = document.createElement("p");
+  intro.className = "muted";
+  intro.textContent =
+    "Radio relays, fence lamps, trap scheduler — meta unlocks for the long haul. Co-op: host purchases only.";
+  el.appendChild(intro);
+
+  const guestLocked = rt.inCoopRoom && !rt.isCoopHost;
+  const encounterWave = campaignWaveNumberFromStageKey(rt.state.currentStageKey);
+
+  for (const node of PERIMETER_GRID) {
+    const row = document.createElement("div");
+    row.className = "inventory-row perimeter-node-row";
+
+    const title = document.createElement("div");
+    title.innerHTML = `<strong>${node.name}</strong><br/><span class="muted">${node.flavor}</span>`;
+    row.appendChild(title);
+
+    const unlocked = Boolean(rt.state.perimeterUnlocked[node.id]);
+    const prereqOk = !node.requires || rt.state.perimeterUnlocked[node.requires];
+    const waveOk = node.minWave === undefined || encounterWave >= node.minWave;
+    const killsOk = node.minTotalKills === undefined || rt.state.totalKills >= node.minTotalKills;
+
+    const status = document.createElement("p");
+    status.className = "muted";
+    if (unlocked) {
+      status.textContent = "Unlocked.";
+    } else {
+      const bits: string[] = [];
+      bits.push(`Cost: ${formatPerimeterCosts(node.costs)}`);
+      if (node.requires) bits.push(`Needs: ${node.requires}`);
+      if (node.minWave !== undefined) {
+        bits.push(`Encounter wave ≥ ${node.minWave}${waveOk ? " ✓" : ""}`);
+      }
+      if (node.minTotalKills !== undefined) {
+        bits.push(`Kills ≥ ${node.minTotalKills}${killsOk ? " ✓" : ""}`);
+      }
+      if (!prereqOk) bits.push("Parent node required");
+      status.textContent = bits.join(" · ");
+    }
+    row.appendChild(status);
+
+    const preview = unlocked ? null : tryBuyPerimeterNode(rt.state, node.id);
+    const canBuy = !guestLocked && !unlocked && preview?.ok === true;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = unlocked ? "Owned" : guestLocked ? "Host only" : "Buy";
+    btn.disabled = unlocked || guestLocked || !canBuy;
+    if (!unlocked && !guestLocked && preview && !preview.ok) {
+      btn.title = preview.reason;
+    }
+    btn.addEventListener("click", () =>
+      actions.applyCommand({ type: "BUY_PERIMETER_NODE", nodeId: node.id }),
+    );
+    row.appendChild(btn);
+
+    el.appendChild(row);
+  }
 }
