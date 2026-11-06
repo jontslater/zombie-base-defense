@@ -11,6 +11,8 @@ export type GameStateDelta = {
   inventory?: GameState["inventory"];
   survivors?: SurvivorState[];
   totalKills?: number;
+  rebornCount?: number;
+  lifetimeCurrencyEarned?: number;
 };
 
 export function diffGameState(prev: GameState, next: GameState): GameStateDelta | null {
@@ -23,6 +25,8 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
     "baseCoreHp",
     "baseCoreMaxHp",
     "totalKills",
+    "rebornCount",
+    "lifetimeCurrencyEarned",
   ];
   for (const key of fields) {
     if (prev[key as keyof GameState] !== next[key as keyof GameState]) {
@@ -61,5 +65,7 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
     inventory: delta.inventory ?? state.inventory,
     survivors: delta.survivors ?? state.survivors,
     totalKills: delta.totalKills ?? state.totalKills,
+    rebornCount: delta.rebornCount ?? state.rebornCount,
+    lifetimeCurrencyEarned: delta.lifetimeCurrencyEarned ?? state.lifetimeCurrencyEarned,
   };
 }

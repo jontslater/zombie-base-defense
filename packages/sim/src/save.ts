@@ -1,11 +1,11 @@
-import { BASE_UPGRADE_IDS, SAVE_VERSION } from "./constants.js";
+import { BASE_UPGRADE_IDS, INITIAL_CURRENCY, SAVE_VERSION } from "./constants.js";
 import type { GameState, SaveEnvelope } from "./types.js";
 
 export function createInitialState(seed = 12345): GameState {
   return {
     tick: 0,
     wave: 1,
-    currency: 50,
+    currency: INITIAL_CURRENCY,
     scrap: 0,
     baseCoreHp: 200,
     baseCoreMaxHp: 200,
@@ -48,6 +48,8 @@ export function createInitialState(seed = 12345): GameState {
     combat: null,
     inventory: [],
     totalKills: 0,
+    rebornCount: 0,
+    lifetimeCurrencyEarned: INITIAL_CURRENCY,
     rngState: seed >>> 0,
   };
 }
@@ -75,6 +77,10 @@ function migrateSave(env: SaveEnvelope): void {
   }
   for (const id of BASE_UPGRADE_IDS) {
     if (env.state.upgrades[id] === undefined) env.state.upgrades[id] = 0;
+  }
+  if (env.state.rebornCount === undefined) env.state.rebornCount = 0;
+  if (env.state.lifetimeCurrencyEarned === undefined) {
+    env.state.lifetimeCurrencyEarned = INITIAL_CURRENCY;
   }
   for (const s of env.state.survivors) {
     if (!s.stance) s.stance = "aggressive";

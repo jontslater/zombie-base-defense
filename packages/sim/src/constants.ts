@@ -1,10 +1,41 @@
+/**
+ * Balance knobs (wave scaling, Reborn prestige).
+ *
+ * Wave difficulty grows with `WAVE_HP_DAMAGE_SCALE_PER_WAVE` in `buildWaveCombat`.
+ * Kill/generator currency uses `REBORN_INCOME_MULT_PER_STACK` (stacks with `rebornCount`).
+ * Survivor+turret DPS uses `REBORN_DPS_MULT_PER_STACK`. Reborn resets the run but keeps
+ * `rebornCount` and grants `INITIAL_CURRENCY + rebornPayout(wave)`.
+ */
+export const INITIAL_CURRENCY = 50;
+
+/** Exponential-ish curve for upgrade prices: floor(25 * 1.55^level). */
+export const UPGRADE_COST_BASE = 25;
+export const UPGRADE_COST_GROWTH = 1.55;
+
+/** Zombie HP and damage scale as 1 + (wave - 1) * this. */
+export const WAVE_HP_DAMAGE_SCALE_PER_WAVE = 0.12;
+
+/** Reborn requires this minimum wave (idle / not in combat). */
+export const REBORN_MIN_WAVE = 5;
+
+/** Currency granted by Reborn on top of `INITIAL_CURRENCY`. */
+export const REBORN_BONUS_CURRENCY_FLAT = 25;
+/** `floor(wave * this)` added to Reborn payout (wave = level when Reborn triggers). */
+export const REBORN_BONUS_CURRENCY_PER_WAVE = 3;
+
+/** Kill + generator currency multiplied by `1 + rebornCount * this`. */
+export const REBORN_INCOME_MULT_PER_STACK = 0.08;
+
+/** Total DPS multiplier: `1 + rebornCount * this` (survivors + turret bonus). */
+export const REBORN_DPS_MULT_PER_STACK = 0.05;
+
 /** Simulation tick rate: 10 ticks per second of game time at 1x speed. */
 export const TICKS_PER_SECOND = 10;
 
 /** Max offline catch-up (8 hours). */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export const BOSS_EVERY_N_WAVES = 10;
 
@@ -95,3 +126,24 @@ export const RARITY_COLORS: Record<Rarity, string> = {
   Mythic: "#e67e22",
   Apocalyptic: "#e74c3c",
 };
+
+export function upgradeCostAtLevel(level: number): number {
+  return Math.floor(UPGRADE_COST_BASE * Math.pow(UPGRADE_COST_GROWTH, level));
+}
+
+/** Currency granted when Reborn triggers at `wave` (full payout replaces wallet). */
+export function rebornStartingCurrency(wave: number): number {
+  return (
+    INITIAL_CURRENCY +
+    REBORN_BONUS_CURRENCY_FLAT +
+    Math.floor(wave * REBORN_BONUS_CURRENCY_PER_WAVE)
+  );
+}
+
+export function rebornIncomeMultiplier(rebornStacks: number): number {
+  return 1 + rebornStacks * REBORN_INCOME_MULT_PER_STACK;
+}
+
+export function rebornDpsMultiplier(rebornStacks: number): number {
+  return 1 + rebornStacks * REBORN_DPS_MULT_PER_STACK;
+}

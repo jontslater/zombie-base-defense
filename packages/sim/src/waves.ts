@@ -2,6 +2,8 @@ import {
   BOSS_EVERY_N_WAVES,
   RARITIES,
   RARITY_WEIGHTS,
+  WAVE_HP_DAMAGE_SCALE_PER_WAVE,
+  rebornDpsMultiplier,
   type Rarity,
 } from "./constants.js";
 import { stanceDamageMultiplier, targetFocusMultiplier } from "./coop.js";
@@ -17,7 +19,7 @@ export function buildWaveCombat(wave: number): WaveCombat {
   const isBoss = waveIsBoss(wave);
   const baseCount = 3 + Math.floor(wave * 0.8);
   const zombiesMax = isBoss ? Math.max(1, Math.floor(baseCount * 0.4)) : baseCount;
-  const scale = 1 + (wave - 1) * 0.12;
+  const scale = 1 + (wave - 1) * WAVE_HP_DAMAGE_SCALE_PER_WAVE;
   const zombieHp = Math.floor(25 * scale * (isBoss ? 8 : 1));
   const zombieDamage = Math.floor(4 * scale * (isBoss ? 2 : 1));
   return {
@@ -37,10 +39,11 @@ export function startWave(state: GameState): GameState {
 }
 
 export function survivorDps(state: GameState): number {
+  const dpsMult = rebornDpsMultiplier(state.rebornCount);
   const turretLevel = state.upgrades.turret;
   const turretBonus = turretLevel * 2;
   const bossWave = waveIsBoss(state.wave);
-  return state.survivors.reduce((sum, s) => {
+  const fromSurvivors = state.survivors.reduce((sum, s) => {
     let dmg = s.damage;
     if (s.skills.damage_1) dmg *= 1.1;
     if (s.skills.damage_2) dmg *= 1.15;
@@ -49,7 +52,8 @@ export function survivorDps(state: GameState): number {
     dmg *= stanceDamageMultiplier(s.stance);
     dmg *= targetFocusMultiplier(s.target, bossWave);
     return sum + dmg;
-  }, turretBonus);
+  }, 0);
+  return (fromSurvivors + turretBonus) * dpsMult;
 }
 
 export function survivorEffectiveHp(state: GameState): number {

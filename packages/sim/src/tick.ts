@@ -1,9 +1,24 @@
 import { processAiGraceDepartures } from "./coop.js";
-import { TICKS_PER_SECOND, WAVE_PENALTY_ON_CORE_FALL } from "./constants.js";
+import {
+  TICKS_PER_SECOND,
+  WAVE_PENALTY_ON_CORE_FALL,
+  rebornIncomeMultiplier,
+} from "./constants.js";
 import { applyCommand, type GameCommand } from "./commands.js";
 import { withRng } from "./rng.js";
 import type { GameState } from "./types.js";
 import { buildWaveCombat, rollLoot, startWave, survivorDps } from "./waves.js";
+
+function grantCurrency(state: GameState, amount: number): GameState {
+  if (amount <= 0) return state;
+  const mult = rebornIncomeMultiplier(state.rebornCount);
+  const gained = Math.floor(amount * mult);
+  return {
+    ...state,
+    currency: state.currency + gained,
+    lifetimeCurrencyEarned: state.lifetimeCurrencyEarned + gained,
+  };
+}
 
 function regenSurvivors(state: GameState): GameState {
   if (state.combat) return state;
@@ -19,7 +34,7 @@ function generatorIncome(state: GameState): GameState {
   if (gen <= 0) return state;
   const every = Math.max(5, 30 - gen * 2);
   if (state.tick % every !== 0) return state;
-  return { ...state, currency: state.currency + 1 + gen };
+  return grantCurrency(state, 1 + gen);
 }
 
 export function simTick(state: GameState): GameState {
@@ -41,12 +56,15 @@ export function simTick(state: GameState): GameState {
   while (combat.zombieHp <= 0 && combat.zombiesRemaining > 0) {
     combat.zombiesRemaining -= 1;
     combat.zombieHp += buildWaveCombat(s.wave).zombieHp;
-    s = {
-      ...s,
-      totalKills: s.totalKills + 1,
-      currency: s.currency + 2 + Math.floor(s.wave * 0.5),
-      scrap: s.scrap + 1,
-    };
+    const killCurrencyBase = 2 + Math.floor(s.wave * 0.5);
+    s = grantCurrency(
+      {
+        ...s,
+        totalKills: s.totalKills + 1,
+        scrap: s.scrap + 1,
+      },
+      killCurrencyBase,
+    );
     const loot = rollLoot(s, s.wave);
     s = loot.state;
     if (loot.item) s = { ...s, inventory: [...s.inventory, loot.item] };
