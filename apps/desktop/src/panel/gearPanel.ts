@@ -29,7 +29,9 @@ import {
   skillPointCostForNextRank,
   skillRank,
   skillsForRole,
+  gemSpriteKeyForKind,
   type GearItem,
+  type GemKind,
   type GearSlot,
   type SkillNodeDef,
   type SkillNodeId,
@@ -41,6 +43,16 @@ import type { GameRuntime, CommandInput } from "../game/runtime";
 import { gearPowerForSurvivor, gearStatDelta } from "../game/gearStats";
 import { appendSlotIcon } from "./gearIcons";
 import { mountProgressPanels, refreshProgressPanelRoot } from "./progressPanel";
+
+function gemSliceIcon(kind: GemKind): HTMLImageElement {
+  const img = document.createElement("img");
+  img.className = "gem-slice-icon";
+  img.src = `/generated/slices/${gemSpriteKeyForKind(kind)}.png`;
+  img.alt = "";
+  img.width = 14;
+  img.height = 14;
+  return img;
+}
 
 function formatGearBrief(item: GearItem): string {
   const aff =
@@ -198,8 +210,13 @@ function renderGearTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions):
       sockRow.className = "socket-row";
       item.sockets.forEach((g, si) => {
         const lab = document.createElement("span");
-        lab.className = "muted";
-        lab.textContent = g ? `${g.kind} T${g.tier}` : `[${si}] empty`;
+        lab.className = "muted gem-socket-line";
+        if (g) {
+          lab.appendChild(gemSliceIcon(g.kind));
+          lab.appendChild(document.createTextNode(` ${g.kind} T${g.tier}`));
+        } else {
+          lab.textContent = `[${si}] empty`;
+        }
         sockRow.appendChild(lab);
         if (g) {
           const pull = document.createElement("button");
@@ -219,7 +236,9 @@ function renderGearTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions):
             const gem = rt.state.gemInventory[gi]!;
             const ins = document.createElement("button");
             ins.type = "button";
-            ins.textContent = `+${gem.kind} T${gem.tier}`;
+            ins.className = "gem-socket-btn";
+            ins.appendChild(gemSliceIcon(gem.kind));
+            ins.appendChild(document.createTextNode(` +${gem.kind} T${gem.tier}`));
             ins.addEventListener("click", () =>
               actions.applyCommand({
                 type: "SOCKET_GEM",
@@ -452,6 +471,7 @@ function renderWorkbenchTab(
       }
     });
     row.appendChild(chk);
+    row.appendChild(gemSliceIcon(gem.kind));
     const lab = document.createElement("span");
     lab.textContent = `${gem.kind} tier ${gem.tier}`;
     row.appendChild(lab);
@@ -627,8 +647,13 @@ function renderWorkbenchTab(
     sockInv.className = "socket-row";
     item.sockets.forEach((g, si) => {
       const bit = document.createElement("span");
-      bit.className = "muted";
-      bit.textContent = g ? `${g.kind} T${g.tier}` : `[${si}]`;
+      bit.className = "muted gem-socket-line";
+      if (g) {
+        bit.appendChild(gemSliceIcon(g.kind));
+        bit.appendChild(document.createTextNode(` ${g.kind} T${g.tier}`));
+      } else {
+        bit.textContent = `[${si}]`;
+      }
       sockInv.appendChild(bit);
       if (g) {
         const pull = document.createElement("button");
@@ -643,7 +668,9 @@ function renderWorkbenchTab(
           const gem = rt.state.gemInventory[gi]!;
           const ins = document.createElement("button");
           ins.type = "button";
-          ins.textContent = `+${gem.kind} T${gem.tier}`;
+          ins.className = "gem-socket-btn";
+          ins.appendChild(gemSliceIcon(gem.kind));
+          ins.appendChild(document.createTextNode(` +${gem.kind} T${gem.tier}`));
           ins.addEventListener("click", () =>
             actions.applyCommand({
               type: "SOCKET_GEM",

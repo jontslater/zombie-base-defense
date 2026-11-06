@@ -243,6 +243,25 @@ button:hover {
   flex-shrink: 0;
 }
 
+.gem-slice-icon {
+  image-rendering: pixelated;
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.gem-socket-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+button.gem-socket-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .panel-section h2 {
   display: flex;
   align-items: center;

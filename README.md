@@ -75,6 +75,8 @@ Headless smoke (deterministic waves + one **Reborn**): `pnpm smoke:sim` (runs `p
 | [`docs/VERTICAL_SLICE.md`](docs/VERTICAL_SLICE.md) | Milestone slices vs TBH parity |
 | [`docs/AGENT_BRIEFS.md`](docs/AGENT_BRIEFS.md) | PR-sized briefs (Round 2+ proposed) |
 | [`docs/TBH_FEATURE_AUDIT.md`](docs/TBH_FEATURE_AUDIT.md) | TBH system inventory + gap table vs this repo |
+| [`docs/STORE.md`](docs/STORE.md) | Draft store copy + **AI art disclosure** for listings |
+| [`CREDITS.md`](CREDITS.md) | AI vs third-party art attribution |
 
 ## Relay on Railway
 
@@ -102,4 +104,4 @@ Survivors render on the **left** (facing right). Zombies render on the **right**
 
 ## License
 
-Game code: MIT (default). Art placeholders: CC0 (see `assets/ASSETS.md`).
+Game code: MIT (default). Sprite and icon art in this branch includes **AI-assisted** assets (see `docs/STORE.md` and `assets/ASSETS.md`); remaining Kenney CC0 placeholders are listed in `assets/ASSETS.md`.
