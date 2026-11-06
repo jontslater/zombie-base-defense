@@ -9,6 +9,7 @@ import {
   campaignWaveNumberFromStageKey,
   stageKeyFromCampaignWave,
 } from "./campaign.js";
+import { normalizeGameState } from "./normalize.js";
 import type { GameState, SaveEnvelope } from "./types.js";
 
 function emptyMaterials(): GameState["materials"] {
@@ -88,11 +89,20 @@ export function parseSave(json: string): SaveEnvelope {
   return data;
 }
 
+/**
+ * Chained migrations: capture `prevVersion` before bumping so steps keyed to older schema numbers
+ * (e.g. campaign grid at envelope v5) still run. Structural coercion for partial JSON is v6+.
+ */
 function migrateSave(env: SaveEnvelope): void {
   const prevVersion = env.version;
   if (env.version < SAVE_VERSION) {
     env.version = SAVE_VERSION;
   }
+
+  if (prevVersion < 6) {
+    env.state = normalizeGameState(env.state);
+  }
+
   if (!env.state.materials) {
     env.state.materials = emptyMaterials();
   } else {
@@ -114,7 +124,7 @@ function migrateSave(env: SaveEnvelope): void {
     if (s.aiControlUntilTick === undefined) s.aiControlUntilTick = null;
   }
 
-  // Campaign grid (SAVE_VERSION 5+): clamp legacy infinite ladder into 1–120 encounter waves.
+  // Campaign grid (SAVE_VERSION 5+ on envelope): clamp legacy infinite ladder into 1–120 encounter waves.
   if (prevVersion < 5) {
     const w = env.state.wave;
     const clampedWave = Math.max(1, Math.min(CAMPAIGN_LAST_STAGE_KEY + 1, w));
