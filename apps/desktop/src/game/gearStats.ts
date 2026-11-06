@@ -1,19 +1,19 @@
+import { campaignStageIsBoss, survivorSkillDamageMultiplier } from "@zbd/sim";
 import type { GearItem, SurvivorState } from "@zbd/sim";
 
-export function gearPowerForSurvivor(survivor: SurvivorState): number {
+export function gearPowerForSurvivor(survivor: SurvivorState, currentStageKey = 0): number {
   const weapon = survivor.gear.weapon;
   let dmg = survivor.damage;
-  if (survivor.skills.damage_1) dmg *= 1.1;
-  if (survivor.skills.damage_2) dmg *= 1.15;
   if (weapon) dmg += weapon.power * 0.5;
-  return dmg;
+  const boss = campaignStageIsBoss(currentStageKey);
+  return dmg * survivorSkillDamageMultiplier(survivor, { isBossWave: boss });
 }
 
-export function gearStatDelta(survivor: SurvivorState, item: GearItem): number {
-  const before = gearPowerForSurvivor(survivor);
+export function gearStatDelta(survivor: SurvivorState, item: GearItem, currentStageKey = 0): number {
+  const before = gearPowerForSurvivor(survivor, currentStageKey);
   const hypothetical = {
     ...survivor,
     gear: { ...survivor.gear, [item.slot]: item },
   };
-  return Math.round((gearPowerForSurvivor(hypothetical) - before) * 10) / 10;
+  return Math.round((gearPowerForSurvivor(hypothetical, currentStageKey) - before) * 10) / 10;
 }

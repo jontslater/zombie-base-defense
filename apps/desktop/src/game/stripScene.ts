@@ -173,8 +173,9 @@ export class StripScene extends Phaser.Scene {
       : " | idle";
     const camp = stripCampaignTag(s.currentStageKey);
     const perimeterN = perimeterUnlockedCount(s);
+    const roles = s.survivors.map((x) => String(x.role).slice(0, 2).toUpperCase()).join("/");
     this.label.setText(
-      `${camp} | w${s.wave} | ${s.currency}c | Core ${Math.floor(s.baseCoreHp)}/${
+      `${camp} | w${s.wave} | ${s.currency}c | ${roles} | Core ${Math.floor(s.baseCoreHp)}/${
         s.baseCoreMaxHp
       } | P${perimeterN}${combatText}`,
     );

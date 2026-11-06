@@ -13,8 +13,6 @@ import {
   GEAR_SLOTS,
   RARITIES,
   RARITY_WEIGHTS,
-  SKILL_COSTS,
-  SKILL_PREREQS,
   SYNTHESIS_INPUT_COUNT,
   SYNTHESIS_SCRAP_COST,
   WORKBENCH_ENHANCE_SCRAP,
@@ -26,7 +24,14 @@ import {
   type PerimeterNodeId,
   type Rarity,
 } from "./constants.js";
-import type { BaseUpgradeId, GearSlot, SkillNodeId, Stance, TargetMode } from "./constants.js";
+import type { BaseUpgradeId, GearSlot, Stance, TargetMode } from "./constants.js";
+import {
+  SURVIVOR_ROLE_IDS,
+  SKILL_NODE_IDS,
+  canSpendSkill,
+  type SkillNodeId,
+  type SurvivorRoleId,
+} from "./survivorRoles.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import { createInitialState } from "./save.js";
 import { perimeterSecondForgeUnlocked, tryBuyPerimeterNode } from "./perimeter.js";
@@ -70,6 +75,12 @@ export type SpendSkillCommand = CommandBase & {
   type: "SPEND_SKILL";
   survivorId: string;
   nodeId: SkillNodeId;
+};
+
+export type SetSurvivorRoleCommand = CommandBase & {
+  type: "SET_SURVIVOR_ROLE";
+  survivorId: string;
+  role: SurvivorRoleId;
 };
 
 export type SetSurvivorNameCommand = CommandBase & {
@@ -141,6 +152,7 @@ export type GameCommand =
   | EquipGearCommand
   | UnequipGearCommand
   | SpendSkillCommand
+  | SetSurvivorRoleCommand
   | SetSurvivorNameCommand
   | SetStanceCommand
   | SetTargetCommand
@@ -261,19 +273,25 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
     case "SPEND_SKILL": {
       const survivor = state.survivors.find((s) => s.id === cmd.survivorId);
       if (!survivor) return state;
-      if (survivor.skills[cmd.nodeId]) return state;
-      const prereq = SKILL_PREREQS[cmd.nodeId];
-      if (prereq && !survivor.skills[prereq]) return state;
-      const cost = SKILL_COSTS[cmd.nodeId];
-      if (survivor.skillPoints < cost) return state;
+      if (!SKILL_NODE_IDS.includes(cmd.nodeId as SkillNodeId)) return state;
+      const nodeId = cmd.nodeId as SkillNodeId;
+      const { ok, cost } = canSpendSkill(survivor, nodeId);
+      if (!ok) return state;
+      const survivors = state.survivors.map((s) => {
+        if (s.id !== cmd.survivorId) return s;
+        const prev = typeof s.skills[nodeId] === "number" ? (s.skills[nodeId] as number) : 0;
+        return {
+          ...s,
+          skillPoints: s.skillPoints - cost,
+          skills: { ...s.skills, [nodeId]: prev + 1 },
+        };
+      });
+      return { ...state, survivors };
+    }
+    case "SET_SURVIVOR_ROLE": {
+      if (!SURVIVOR_ROLE_IDS.includes(cmd.role)) return state;
       const survivors = state.survivors.map((s) =>
-        s.id === cmd.survivorId
-          ? {
-              ...s,
-              skillPoints: s.skillPoints - cost,
-              skills: { ...s.skills, [cmd.nodeId]: true },
-            }
-          : s,
+        s.id === cmd.survivorId ? { ...s, role: cmd.role } : s,
       );
       return { ...state, survivors };
     }

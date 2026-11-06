@@ -8,10 +8,10 @@ import {
   PERIMETER_GRID,
   RARITIES,
   RARITY_COLORS,
-  SKILL_COSTS,
-  SKILL_NODE_IDS,
-  SKILL_PREREQS,
+  ROLE_LABELS,
+  ROLE_PASSIVES,
   STANCES,
+  SURVIVOR_ROLE_IDS,
   SYNTHESIS_INPUT_COUNT,
   SYNTHESIS_SCRAP_COST,
   TARGET_MODES,
@@ -20,8 +20,14 @@ import {
   WORKBENCH_REROLL_SCRAP,
   perimeterSecondForgeUnlocked,
   tryBuyPerimeterNode,
+  canSpendSkill,
+  skillPointCostForNextRank,
+  skillRank,
+  skillsForRole,
   type GearSlot,
+  type SkillNodeDef,
   type SkillNodeId,
+  type SurvivorRoleId,
   type Stance,
   type TargetMode,
 } from "@zbd/sim";
@@ -194,7 +200,7 @@ function renderGearTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions):
   rt.state.inventory.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "inventory-row";
-    const delta = gearStatDelta(survivor, item);
+    const delta = gearStatDelta(survivor, item, rt.state.currentStageKey);
     const label = document.createElement("span");
     label.className = "gear-item";
     label.style.color = RARITY_COLORS[item.rarity];
@@ -216,7 +222,7 @@ function renderGearTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions):
 
   const dps = document.createElement("p");
   dps.className = "muted";
-  dps.textContent = `Effective weapon power: ${gearPowerForSurvivor(survivor).toFixed(1)}`;
+  dps.textContent = `Effective weapon power: ${gearPowerForSurvivor(survivor, rt.state.currentStageKey).toFixed(1)}`;
   el.appendChild(dps);
 }
 
@@ -229,24 +235,77 @@ function renderSkillsTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions
   renderSurvivorPicker(pickerHost, rt, (id) => actions.selectSurvivor(id));
   el.appendChild(pickerHost);
 
+  const roleLine = document.createElement("div");
+  roleLine.className = "btn-row";
+  roleLine.innerHTML = `<span class="slot-label">Role</span>`;
+  for (const role of SURVIVOR_ROLE_IDS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = ROLE_LABELS[role];
+    btn.classList.toggle("selected", survivor.role === role);
+    btn.addEventListener("click", () =>
+      actions.applyCommand({
+        type: "SET_SURVIVOR_ROLE",
+        survivorId: survivor.id,
+        role: role as SurvivorRoleId,
+      }),
+    );
+    roleLine.appendChild(btn);
+  }
+  el.appendChild(roleLine);
+
+  const passive = document.createElement("p");
+  passive.className = "muted";
+  const kit = survivor.role as SurvivorRoleId;
+  const rp = ROLE_PASSIVES[kit];
+  passive.textContent = `${rp.name}: ${rp.desc}`;
+  el.appendChild(passive);
+
   const pts = document.createElement("p");
   pts.textContent = `Skill points: ${survivor.skillPoints}`;
   el.appendChild(pts);
 
   const tree = document.createElement("div");
   tree.className = "skill-tree";
-  for (const nodeId of SKILL_NODE_IDS) {
-    const owned = survivor.skills[nodeId];
-    const prereq = SKILL_PREREQS[nodeId];
-    const locked = prereq ? !survivor.skills[prereq] : false;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.disabled = owned || locked || survivor.skillPoints < SKILL_COSTS[nodeId];
-    btn.textContent = `${nodeId} (${SKILL_COSTS[nodeId]} pt)${owned ? " ✓" : ""}`;
-    btn.addEventListener("click", () =>
-      actions.applyCommand({ type: "SPEND_SKILL", survivorId: survivor.id, nodeId: nodeId as SkillNodeId }),
-    );
-    tree.appendChild(btn);
+  const nodes = skillsForRole(survivor.role as SurvivorRoleId);
+  const byTier = new Map<number, SkillNodeDef[]>();
+  for (const def of nodes) {
+    const list = byTier.get(def.tier) ?? [];
+    list.push(def);
+    byTier.set(def.tier, list);
+  }
+  const tiers = [...byTier.keys()].sort((a, b) => a - b);
+  for (const tier of tiers) {
+    const sub = document.createElement("div");
+    sub.className = "skill-tier";
+    sub.innerHTML = `<div class="muted">Tier ${tier}</div>`;
+    const row = document.createElement("div");
+    row.className = "btn-row skill-tier-row";
+    for (const def of byTier.get(tier)!) {
+      const current = skillRank(survivor, def.id);
+      const cost = skillPointCostForNextRank(def, current);
+      const { ok, reason } = canSpendSkill(survivor, def.id);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.disabled = !ok;
+      const tag =
+        current >= def.maxRank ? `max ${current}/${def.maxRank}` : `rank ${current}/${def.maxRank}, next ${cost} pt`;
+      let hint = "";
+      if (!ok && reason === "prereq") hint = " (needs prereq)";
+      else if (!ok && reason === "wrong role") hint = " (wrong role)";
+      else if (!ok && reason === "points") hint = ` (need ${cost} pt)`;
+      btn.textContent = `${def.shortName} — ${tag}${hint}`;
+      btn.addEventListener("click", () =>
+        actions.applyCommand({
+          type: "SPEND_SKILL",
+          survivorId: survivor.id,
+          nodeId: def.id as SkillNodeId,
+        }),
+      );
+      row.appendChild(btn);
+    }
+    sub.appendChild(row);
+    tree.appendChild(sub);
   }
   el.appendChild(tree);
 }

@@ -18,6 +18,15 @@ import {
 import { withRng } from "./rng.js";
 import type { GameState } from "./types.js";
 import { buildWaveCombat, rollLoot, startWave, survivorDps } from "./waves.js";
+import {
+  aggregateCoreInboundMultiplier,
+  engineerGeneratorSkillMultiplier,
+  survivorIdleRegenMultiplier,
+  survivorInboundDamageMultiplier,
+  survivorKillCurrencySkillBonus,
+  survivorSkillMaxHpMultiplier,
+  survivorSkillPointRollBonus,
+} from "./survivorRoles.js";
 
 function grantCurrency(state: GameState, amount: number): GameState {
   if (amount <= 0) return state;
@@ -33,8 +42,9 @@ function grantCurrency(state: GameState, amount: number): GameState {
 function regenSurvivors(state: GameState): GameState {
   if (state.combat) return state;
   const survivors = state.survivors.map((s) => {
-    const heal = Math.max(1, Math.floor(s.maxHp * 0.002));
-    return { ...s, hp: Math.min(s.maxHp, s.hp + heal) };
+    const cap = Math.floor(s.maxHp * survivorSkillMaxHpMultiplier(s));
+    const heal = Math.max(1, Math.floor(cap * 0.002 * survivorIdleRegenMultiplier(s)));
+    return { ...s, hp: Math.min(cap, s.hp + heal) };
   });
   return { ...state, survivors };
 }
@@ -44,7 +54,8 @@ function generatorIncome(state: GameState): GameState {
   if (gen <= 0) return state;
   const every = Math.max(5, 30 - gen * 2);
   if (state.tick % every !== 0) return state;
-  return grantCurrency(state, 1 + gen);
+  const genMult = state.survivors.reduce((acc, s) => acc * engineerGeneratorSkillMultiplier(s), 1);
+  return grantCurrency(state, Math.floor((1 + gen) * genMult));
 }
 
 export function simTick(state: GameState): GameState {
@@ -69,7 +80,9 @@ export function simTick(state: GameState): GameState {
   while (combat.zombieHp <= 0 && combat.zombiesRemaining > 0) {
     combat.zombiesRemaining -= 1;
     combat.zombieHp += buildWaveCombat(encounterWave).zombieHp;
-    const killCurrencyBase = 2 + Math.floor(s.wave * 0.5);
+    const killPts = 2 + Math.floor(s.wave * 0.5);
+    const killBonus = s.survivors.reduce((acc, sv) => acc + survivorKillCurrencySkillBonus(sv), 0);
+    const killCurrencyBase = Math.floor(killPts * (1 + killBonus));
     s = grantCurrency(
       {
         ...s,
@@ -82,7 +95,11 @@ export function simTick(state: GameState): GameState {
     s = loot.state;
     if (loot.item) s = { ...s, inventory: [...s.inventory, loot.item] };
 
-    const spRoll = withRng(s, (rng) => rng.next() < 0.02);
+    const spChance = Math.min(
+      0.95,
+      0.02 + s.survivors.reduce((acc, sv) => acc + survivorSkillPointRollBonus(sv), 0),
+    );
+    const spRoll = withRng(s, (rng) => rng.next() < spChance);
     s = { ...s, rngState: spRoll.rngState };
     if (spRoll.result && s.survivors[0]) {
       s = {
@@ -105,10 +122,15 @@ export function simTick(state: GameState): GameState {
 
   const inbound = combat.zombieDamage / TICKS_PER_SECOND;
   const coreMit = perimeterCoreMitigationMult(s);
-  const baseCoreHp = s.baseCoreHp - inbound * 0.35 * (coreMit > 0 ? 1 / coreMit : 1);
+  const coreSkillMult = aggregateCoreInboundMultiplier(s.survivors);
+  const baseCoreHp =
+    s.baseCoreHp -
+    inbound * 0.35 * (coreMit > 0 ? 1 / coreMit : 1) * coreSkillMult;
+  const nSurv = Math.max(1, s.survivors.length);
+  const survivorShare = (inbound * 0.15) / nSurv;
   const survivors = s.survivors.map((sv) => ({
     ...sv,
-    hp: Math.max(0, sv.hp - (inbound * 0.15) / Math.max(1, s.survivors.length)),
+    hp: Math.max(0, sv.hp - survivorShare * survivorInboundDamageMultiplier(sv)),
   }));
 
   if (baseCoreHp <= 0) {
@@ -121,7 +143,10 @@ export function simTick(state: GameState): GameState {
       combat: null,
       survivors: survivors.map((sv) => ({
         ...sv,
-        hp: Math.max(1, Math.floor(sv.maxHp * 0.5)),
+        hp: Math.max(
+          1,
+          Math.floor(sv.maxHp * survivorSkillMaxHpMultiplier(sv) * 0.5),
+        ),
       })),
     };
   }

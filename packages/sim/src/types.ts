@@ -10,11 +10,19 @@ export type GearItem = {
 export type SurvivorState = {
   id: string;
   name: string;
+  /** Class kit — gates which skill tree nodes can be purchased. */
+  role: import("./survivorRoles.js").SurvivorRoleId;
   hp: number;
   maxHp: number;
   damage: number;
   skillPoints: number;
-  skills: Partial<Record<import("./constants.js").SkillNodeId, true>>;
+  /**
+   * Per-node rank (≥1). Omitted = 0.
+   * Legacy v4–v7 keys (`damage_1`, … booleans) are stripped at SAVE_VERSION 8 migration.
+   */
+  skills: Partial<
+    Record<import("./survivorRoles.js").SkillNodeId | "damage_1" | "damage_2" | "hp_1" | "loot_1", number | true>
+  >;
   gear: Partial<Record<import("./constants.js").GearSlot, GearItem>>;
   stance: import("./constants.js").Stance;
   target: import("./constants.js").TargetMode;

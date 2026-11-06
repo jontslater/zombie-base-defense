@@ -12,7 +12,7 @@ await page.goto("http://localhost:4173", { waitUntil: "networkidle" });
 
 await page.evaluate(() => {
   const seed = {
-    version: 5,
+    version: 8,
     savedAtMs: Date.now(),
     state: {
       tick: 120,
@@ -21,6 +21,7 @@ await page.evaluate(() => {
       campaignHighestClearedKey: 5,
       currency: 240,
       scrap: 18,
+      perimeterUnlocked: {},
       materials: {
         alloy: 2,
         battery: 1,
@@ -35,11 +36,12 @@ await page.evaluate(() => {
         {
           id: "surv-1",
           name: "Scout",
+          role: "hunter",
           hp: 80,
           maxHp: 80,
           damage: 12,
           skillPoints: 3,
-          skills: { damage_1: true },
+          skills: { hu_precision: 2 },
           gear: { weapon: { id: "w1", slot: "weapon", rarity: "Rare", power: 14 } },
           stance: "aggressive",
           target: "nearest",
@@ -49,11 +51,12 @@ await page.evaluate(() => {
         {
           id: "surv-2",
           name: "Engineer",
+          role: "engineer",
           hp: 70,
           maxHp: 70,
           damage: 8,
           skillPoints: 2,
-          skills: {},
+          skills: { en_turret: 1 },
           gear: {},
           stance: "defensive",
           target: "boss",
@@ -74,6 +77,8 @@ await page.evaluate(() => {
         { id: "i2", slot: "trinket", rarity: "Uncommon", power: 6 },
       ],
       totalKills: 22,
+      rebornCount: 0,
+      lifetimeCurrencyEarned: 240,
       rngState: 4242,
     },
   };

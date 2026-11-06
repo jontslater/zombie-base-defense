@@ -11,3 +11,4 @@ export * from "./save.js";
 export * from "./offline.js";
 export * from "./workbenchMaterials.js";
 export * from "./perimeter.js";
+export * from "./survivorRoles.js";

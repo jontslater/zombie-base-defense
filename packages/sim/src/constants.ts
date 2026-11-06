@@ -35,8 +35,8 @@ export const TICKS_PER_SECOND = 10;
 /** Max offline catch-up (8 hours). */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter grid meta. */
-export const SAVE_VERSION = 7;
+/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter grid meta; v8: survivor roles + ranked skill trees. */
+export const SAVE_VERSION = 8;
 
 export const BOSS_EVERY_N_WAVES = 10;
 
@@ -80,26 +80,6 @@ export const RARITY_WEIGHTS: Record<Rarity, number> = {
   Legendary: 400,
   Mythic: 250,
   Apocalyptic: 50,
-};
-
-export const SKILL_NODE_IDS = [
-  "damage_1",
-  "damage_2",
-  "hp_1",
-  "loot_1",
-] as const;
-
-export type SkillNodeId = (typeof SKILL_NODE_IDS)[number];
-
-export const SKILL_COSTS: Record<SkillNodeId, number> = {
-  damage_1: 1,
-  damage_2: 2,
-  hp_1: 1,
-  loot_1: 2,
-};
-
-export const SKILL_PREREQS: Partial<Record<SkillNodeId, SkillNodeId>> = {
-  damage_2: "damage_1",
 };
 
 export const STANCES = ["aggressive", "defensive", "support"] as const;

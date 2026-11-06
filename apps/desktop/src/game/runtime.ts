@@ -13,6 +13,7 @@ import {
   type EquipGearCommand,
   type UnequipGearCommand,
   type SpendSkillCommand,
+  type SetSurvivorRoleCommand,
   type SetSurvivorNameCommand,
   type SetStanceCommand,
   type SetTargetCommand,
@@ -113,6 +114,7 @@ export type CommandInput =
   | StripMeta<EquipGearCommand>
   | StripMeta<UnequipGearCommand>
   | StripMeta<SpendSkillCommand>
+  | StripMeta<SetSurvivorRoleCommand>
   | StripMeta<SetSurvivorNameCommand>
   | StripMeta<SetStanceCommand>
   | StripMeta<SetTargetCommand>
