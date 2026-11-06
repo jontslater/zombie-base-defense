@@ -1,0 +1,175 @@
+{
+  "frames": {
+    "survivor": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 51,
+        "h": 43
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 51,
+        "h": 43
+      },
+      "sourceSize": {
+        "w": 51,
+        "h": 43
+      }
+    },
+    "survivor_alt": {
+      "frame": {
+        "x": 52,
+        "y": 0,
+        "w": 52,
+        "h": 43
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 52,
+        "h": 43
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 43
+      }
+    },
+    "zombie": {
+      "frame": {
+        "x": 105,
+        "y": 0,
+        "w": 49,
+        "h": 43
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 49,
+        "h": 43
+      },
+      "sourceSize": {
+        "w": 49,
+        "h": 43
+      }
+    },
+    "base": {
+      "frame": {
+        "x": 155,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      }
+    },
+    "wall": {
+      "frame": {
+        "x": 220,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      }
+    },
+    "turret": {
+      "frame": {
+        "x": 285,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      }
+    },
+    "projectile": {
+      "frame": {
+        "x": 350,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      }
+    },
+    "weapon_icon": {
+      "frame": {
+        "x": 415,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    }
+  },
+  "meta": {
+    "app": "https://github.com/jontslater/zombie-base-defense",
+    "version": "1.0",
+    "image": "sprites-atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 435,
+      "h": 65
+    },
+    "scale": "1"
+  }
+}

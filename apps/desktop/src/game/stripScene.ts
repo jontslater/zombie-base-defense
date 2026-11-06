@@ -26,13 +26,7 @@ export class StripScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("survivor", "/sprites/survivor.png");
-    this.load.image("survivor_alt", "/sprites/survivor_alt.png");
-    this.load.image("zombie", "/sprites/zombie.png");
-    this.load.image("base", "/sprites/base.png");
-    this.load.image("wall", "/sprites/wall.png");
-    this.load.image("turret", "/sprites/turret.png");
-    this.load.image("projectile", "/sprites/projectile.png");
+    this.load.atlas("sprites", "/generated/sprites-atlas.png", "/generated/sprites-atlas.json");
     this.load.audio("hit", "/audio/hit.ogg");
   }
 
@@ -75,7 +69,7 @@ export class StripScene extends Phaser.Scene {
   }
 
   private layoutStructures() {
-    this.add.image(378, 42, "base").setScale(STRUCTURE_SCALE).setDepth(1);
+    this.add.image(378, 42, "sprites", "base").setScale(STRUCTURE_SCALE).setDepth(1);
   }
 
   private layoutWallsAndTurrets() {
@@ -87,7 +81,7 @@ export class StripScene extends Phaser.Scene {
     const wallLevel = this.rt.state.upgrades.wall;
     for (let i = 0; i < wallLevel; i++) {
       const x = 318 - i * 22;
-      const spr = this.add.image(x, 44, "wall").setScale(STRUCTURE_SCALE * 0.85).setDepth(0);
+      const spr = this.add.image(x, 44, "sprites", "wall").setScale(STRUCTURE_SCALE * 0.85).setDepth(0);
       this.wallSprites.push(spr);
     }
 
@@ -95,7 +89,7 @@ export class StripScene extends Phaser.Scene {
     for (let i = 0; i < turretLevel; i++) {
       const x = 348 - i * 16;
       const y = 28 + i * 4;
-      const spr = this.add.image(x, y, "turret").setScale(STRUCTURE_SCALE * 0.55).setDepth(2);
+      const spr = this.add.image(x, y, "sprites", "turret").setScale(STRUCTURE_SCALE * 0.55).setDepth(2);
       this.turretSprites.push(spr);
     }
   }
@@ -110,7 +104,7 @@ export class StripScene extends Phaser.Scene {
     survivors.forEach((_, i) => {
       const x = 22 + i * 24;
       const key = i % 2 === 0 ? "survivor" : "survivor_alt";
-      const spr = this.add.image(x, 42, key).setScale(SURVIVOR_SCALE);
+      const spr = this.add.image(x, 42, "sprites", key).setScale(SURVIVOR_SCALE);
       spr.setFlipX(false);
       spr.setDepth(3);
       this.survivorSprites.push(spr);
@@ -120,7 +114,7 @@ export class StripScene extends Phaser.Scene {
     const zCount = combat ? Math.min(4, combat.zombiesRemaining) : 0;
     for (let i = 0; i < zCount; i++) {
       const x = 268 - i * 22;
-      const spr = this.add.image(x, 42, "zombie").setScale(ZOMBIE_SCALE);
+      const spr = this.add.image(x, 42, "sprites", "zombie").setScale(ZOMBIE_SCALE);
       spr.setFlipX(true);
       spr.setTint(ZOMBIE_TINT);
       spr.setDepth(3);
@@ -137,7 +131,7 @@ export class StripScene extends Phaser.Scene {
     const to = this.zombieSprites[Phaser.Math.Between(0, this.zombieSprites.length - 1)]!;
 
     const bullet = this.add
-      .image(from.x + 6, from.y - 10, "projectile")
+      .image(from.x + 6, from.y - 10, "sprites", "projectile")
       .setScale(0.16)
       .setDepth(4);
     this.tweens.add({
