@@ -117,6 +117,7 @@ fn set_strip_click_through(app: tauri::AppHandle, enabled: bool) -> Result<(), S
 
 fn dock_strip_internal(window: &tauri::WebviewWindow, app: &tauri::AppHandle) -> Result<(), String> {
     let cfg = read_strip_config(app.clone())?.unwrap_or_default();
+    let click_through = cfg.strip_click_through.unwrap_or(false);
     let remember = cfg.strip_remember_position.unwrap_or(true);
 
     let size = window.outer_size().map_err(|e| e.to_string())?;
@@ -152,7 +153,7 @@ fn dock_strip_internal(window: &tauri::WebviewWindow, app: &tauri::AppHandle) ->
         write_strip_config(app.clone(), next)?;
     }
 
-    if cfg.strip_click_through.unwrap_or(false) {
+    if click_through {
         window
             .set_ignore_cursor_events(true)
             .map_err(|e| e.to_string())?;
