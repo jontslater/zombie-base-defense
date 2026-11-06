@@ -186,8 +186,27 @@ button:hover {
   content: "";
   width: 14px;
   height: 14px;
-  background: url("/ui/icon_circle.png") center / contain no-repeat;
+  background: url("/generated/slices/icon_section.png") center / contain no-repeat;
   opacity: 0.85;
+}
+
+.status-economy,
+.status-materials {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.eco-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+img.eco-icon {
+  image-rendering: pixelated;
+  vertical-align: middle;
 }
 
 button.selected {

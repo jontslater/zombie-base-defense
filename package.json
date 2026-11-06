@@ -2,13 +2,15 @@
   "name": "zombie-base-defense",
   "private": true,
   "scripts": {
-    "build:sprites": "node tools/build-sprite-atlas.mjs",
+    "generate:sprites": "node tools/generate-pixel-sprites.mjs",
+    "build:sprites": "node tools/generate-pixel-sprites.mjs && node tools/build-sprite-atlas.mjs",
     "dev": "pnpm --filter @zbd/desktop dev",
     "dev:relay": "pnpm --filter @zbd/relay dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck",
-    "smoke:sim": "pnpm --filter @zbd/sim smoke"
+    "smoke:sim": "pnpm --filter @zbd/sim smoke",
+    "capture:strip": "node scripts/capture-strip.mjs"
   },
   "devDependencies": {
     "playwright": "^1.64.1",

@@ -9,7 +9,7 @@ import {
   type CommandInput,
 } from "./game/runtime";
 import { RelayClient } from "./net/relayClient";
-import { MATERIAL_IDS, simTick } from "@zbd/sim";
+import { simTick } from "@zbd/sim";
 import { loadAppConfig } from "./config";
 import {
   applyGuestDelta,
@@ -24,6 +24,7 @@ import {
   onRelayHello,
 } from "./coop/coopSession";
 import { mountCampaignGrid, refreshCampaignGrid } from "./panel/campaignGrid";
+import { economyStatusHtml } from "./panel/economyIcons";
 import { mountGearPanel, refreshGearPanelRoot } from "./panel/gearPanel";
 import { wirePanelUiSounds } from "./panel/uiSounds";
 import type { GameStateDelta } from "@zbd/sim";
@@ -157,11 +158,9 @@ function applyPlayerCommand(partial: CommandInput) {
 function refreshPanel() {
   const status = document.getElementById("status-lines")!;
   const s = runtime.state;
-  const matLine = MATERIAL_IDS.map((id) => `${id.slice(0, 3)} ${s.materials[id]}`).join(" · ");
   status.innerHTML = [
     `Encounter wave ${s.wave} · Tick ${s.tick}`,
-    `Currency ${s.currency} · Scrap ${s.scrap}`,
-    `Materials: ${matLine}`,
+    economyStatusHtml(s),
     `Kills ${s.totalKills} · Inventory ${s.inventory.length}`,
     `Survivors: ${s.survivors.map((x) => x.name).join(", ")}`,
   ]

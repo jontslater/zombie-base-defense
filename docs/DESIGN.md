@@ -61,7 +61,7 @@ Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, *
 | **Facing** | **Survivors**: face **right** (flipX false in strip). **Zombies**: face **left** toward the base (flipX true). **Base**: neutral or slight three-quarter toward center. |
 | **Outline** | **1px dark outline** on characters and large UI icons unless the style is explicitly outline-free **everywhere** (pick one: default is **outlined** for strip clarity). |
 
-**Placeholders**: **Kenney CC0** assets under `assets/` remain until replaced; see `assets/ASSETS.md`.
+**Placeholders**: Strip/UI pixel art is generated in-repo; Kenney **audio** may remain until replaced — see `assets/ASSETS.md`.
 
 **Machine-readable ART_RULES**: `assets/art-rules.json` (same content as this table, for tooling and pipeline checks).
 

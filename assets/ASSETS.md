@@ -1,63 +1,57 @@
 # Assets
 
-All art and audio in this directory are from [Kenney.nl](https://kenney.nl) packs, licensed **CC0 1.0** (public domain). Credit is appreciated but not required — see [Kenney support / license](https://kenney.nl/support).
+Art and UI for the strip and panel use a **single coherent style** documented as **ART_RULES** in `docs/DESIGN.md` and `assets/art-rules.json`.
 
-No AI-generated images are included.
+## Attribution and provenance
 
-## Source packs
+- **Strip / panel pixel sprites (32×32)**: Authored **in-repo** as deterministic pixel routines in `tools/generate-pixel-sprites.mjs`, exported to PNG, packed by `tools/build-sprite-atlas.mjs` into `generated/sprites-atlas.png` and `generated/sprites-atlas.json`, with per-frame copies in `generated/slices/`. **No third-party sprite sheets** are embedded for those layers.
+- **Audio**: Legacy **Kenney CC0** impact and interface sounds remain under `audio/` until replaced — see table below.
+- **Disclosure — AI-assisted**: **No machine-learning image generator** was used for this pass. The artwork is hand-authored procedural pixel code (same rationale as “original sprite set” in-repo). If a future pass uses generative image models, update this file and store listings accordingly.
 
-| Pack | URL | License | Used for |
-| --- | --- | --- | --- |
-| Top-down Shooter | https://kenney.nl/assets/top-down-shooter | CC0 1.0 | Survivors, zombie base sprite (tinted in-game), weapon icon |
-| Tower Defense Kit | https://kenney.nl/assets/tower-defense-kit | CC0 1.0 | Base core, walls, turrets, projectiles |
-| UI Pack | https://kenney.nl/assets/ui-pack | CC0 1.0 | Panel button chrome and icons |
-| Impact Sounds | https://kenney.nl/assets/impact-sounds | CC0 1.0 | Combat hit feedback |
-| Interface Sounds | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Panel click / select feedback |
+## Audio (unchanged placeholders)
 
-Packs were downloaded from Kenney.nl inside the development environment (November 2026).
+| File        | Source                         | Role              |
+| ----------- | ------------------------------ | ----------------- |
+| `hit.ogg`   | Kenney Impact Sounds (CC0)     | Combat hit on strip |
+| `ui_click.ogg` | Kenney Interface Sounds (CC0) | Panel button      |
+| `ui_select.ogg` | Kenney Interface Sounds (CC0) | Subtab change     |
 
-## Sprite manifest (strip combat art)
+## Sprite manifest (strip + panel icons)
 
-Strip Phaser sprites are listed in **`sprite.manifest.json`** and packed to **`generated/sprites-atlas.png`** + **`generated/sprites-atlas.json`** (plus **`generated/slices/*.png`** for DOM/CSS). See **`README.md`** in this folder for Kenney vs AI intake. Rebuild with `pnpm build:sprites` or via `pnpm dev` / `pnpm --filter @zbd/desktop build`.
+- **Manifest**: `sprite.manifest.json`
+- **Atlas output**: `generated/sprites-atlas.png` + `generated/sprites-atlas.json`
+- **Slices** (for `<img>` / CSS): `generated/slices/<key>.png`
 
-## Files in this repo
+Regenerate after art or manifest changes:
 
-### `sprites/`
+```bash
+pnpm build:sprites
+```
 
-| File | Kenney source | Role |
-| --- | --- | --- |
-| `survivor.png` | Top-down Shooter · Survivor 1 · `survivor1_gun.png` | Primary survivor (left, faces right) |
-| `survivor_alt.png` | Top-down Shooter · Soldier 1 · `soldier1_gun.png` | Second survivor variant |
-| `zombie.png` | Top-down Shooter · Zombie 1 · `zoimbie1_gun.png` | Zombie (right, faces left; green tint in Phaser) |
-| `base.png` | Tower Defense Kit · `tile-spawn.png` | Base core on the far right |
-| `wall.png` | Tower Defense Kit · `wood-structure-high.png` | Wall segments by upgrade level |
-| `turret.png` | Tower Defense Kit · `weapon-turret.png` | Turret by upgrade level |
-| `projectile.png` | Tower Defense Kit · `weapon-ammo-bullet.png` | Strip combat bullets |
-| `weapon_icon.png` | Top-down Shooter · `weapon_gun.png` | Gear panel weapon slot icon |
+This runs `generate-pixel-sprites.mjs` then `build-sprite-atlas.mjs`. `pnpm dev` / `pnpm --filter @zbd/desktop build` run the same step via `predev` / `prebuild`.
 
-### `ui/`
+## Coverage (keys in the manifest)
 
-| File | Kenney source | Role |
-| --- | --- | --- |
-| `button_round_flat.png` | UI Pack · Blue Default | Subtab / pill button background |
-| `button_square_border.png` | UI Pack · Blue Default | Primary panel button background |
-| `icon_checkmark.png` | UI Pack | Skill owned indicator |
-| `icon_circle.png` | UI Pack | Generic slot marker |
-| `icon_armor.png` | UI Pack · `icon_outline_square.png` | Armor slot icon |
-| `icon_tool.png` | Top-down Shooter · `weapon_machine.png` | Tool slot icon |
-| `star.png` | UI Pack | Trinket slot icon |
+| Category | Keys / notes |
+| -------- | ------------ |
+| **Survivors** | `survivor_<tank\|dps\|support\|striker>_(idle\|attack)` — face **right** in source (Phaser `flipX = false`). Stance mapping in `StripScene`: aggressive → DPS, defensive → tank, support → support. |
+| **Zombies** | `zombie_<walker\|runner\|tank\|spitter\|boomer\|lurker>_(walk_a\|walk_b\|hit\|death)`; boss uses `zombie_boss_*`. Face **left** in source (strip uses `flipX = true`). |
+| **Base / structures** | `base_core`, `wall`, `turret` |
+| **FX** | `projectile`, `muzzle_flash` |
+| **Companions** | `companion_dog`, `companion_cat`, `companion_drone`, `companion_bot`, `companion_raven`, `companion_droid_ball`, `companion_gecko`, `companion_hedgehog` |
+| **Gear slot icons** | `icon_weapon`, `icon_armor`, `icon_tool`, `icon_trinket` (also `weapon_icon` alias for the weapon slot) |
+| **Rarity gems** | `gem_common` … `gem_apocalyptic` (colors align with `RARITY_COLORS` in `packages/sim/src/constants.ts`) |
+| **Economy** | `icon_currency`, `icon_scrap`, `material_<alloy\|battery\|compound\|fiber\|wiring>` |
+| **UI chrome** | `ui/button_*.png`, `ui/icon_*.png` — generated to the same palette |
 
-### `audio/`
+Legacy keys `survivor`, `survivor_alt`, `zombie`, `base` remain as aliases for tooling/tests.
 
-| File | Kenney source | Role |
-| --- | --- | --- |
-| `hit.ogg` | Impact Sounds · `impactGeneric_light_004.ogg` | Strip hit when zombies take damage |
-| `ui_click.ogg` | Interface Sounds · `click_001.ogg` | Panel button press |
-| `ui_select.ogg` | Interface Sounds · `select_004.ogg` | Subtab change |
-
-## Layout notes
+## Strip layout notes
 
 - Strip canvas: **400×80** px.
-- Survivors on the **left**, `flipX = false` (face right).
-- Zombies on the **right**, `flipX = true` (face left).
-- Sprites are scaled in Phaser to stay readable at strip size.
+- Survivors on the **left**; zombies on the **right**; core **far right**.
+- Companion strip is a **static preview row** of all eight companions (feature hook; not sim state).
+
+## Captures
+
+Strip captures (GIF, stills, contact sheet) are produced by `pnpm capture:strip` → `docs/captures/strip/` (see `docs/captures/strip/README.md`).

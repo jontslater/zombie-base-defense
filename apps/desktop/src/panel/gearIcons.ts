@@ -1,10 +1,10 @@
 import type { GearSlot } from "@zbd/sim";
 
 const SLOT_ICON: Record<GearSlot, string> = {
-  weapon: "/generated/slices/weapon_icon.png",
-  armor: "/ui/icon_armor.png",
-  tool: "/ui/icon_tool.png",
-  trinket: "/ui/star.png",
+  weapon: "/generated/slices/icon_weapon.png",
+  armor: "/generated/slices/icon_armor.png",
+  tool: "/generated/slices/icon_tool.png",
+  trinket: "/generated/slices/icon_trinket.png",
 };
 
 export function gearSlotIconSrc(slot: GearSlot): string {

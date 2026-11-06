@@ -2,16 +2,15 @@
 
 ## Sprite atlas pipeline
 
-Strip combat art is served from **`generated/sprites-atlas.png`** + **`generated/sprites-atlas.json`**, built from **`sprite.manifest.json`** and the PNG paths it lists. The same step copies each sprite to **`generated/slices/<key>.png`** for plain `<img>` / CSS use (for example the gear panel weapon icon).
+Strip combat art is served from **`generated/sprites-atlas.png`** + **`generated/sprites-atlas.json`**, built from **`sprite.manifest.json`** and the PNG paths it lists. The same step copies each sprite to **`generated/slices/<key>.png`** for plain `<img>` / CSS use.
 
-- **Add or swap art:** copy PNGs under `assets/` (typically `sprites/`), add or update a row in `assets/sprite.manifest.json`, then run `pnpm build:sprites` from the repo root (or use `pnpm dev` / `pnpm --filter @zbd/desktop build`, which run the same step first).
-- **No Phaser code changes** are required for new frames as long as the logical `key` matches what `StripScene` uses (`survivor`, `zombie`, `base`, etc.).
-
-Kenney packs and future AI-generated exports both follow the same path: **manifest + files**.
+- **Default art path:** run **`pnpm build:sprites`** (or `pnpm dev` / `pnpm --filter @zbd/desktop build`). That regenerates **`tools/generate-pixel-sprites.mjs`** output under `assets/sprites/` and `assets/ui/`, then packs the atlas.
+- **Hand-painted or external PNGs:** drop files under `assets/` and list them in **`sprite.manifest.json`** (skip the generator for those keys, or add them to the script).
+- **Phaser references** frame keys explicitly in `StripScene` (`apps/desktop/src/game/stripScene.ts`); new strip art needs matching keys there or atlas load will warn at runtime.
 
 ## Kenney (CC0)
 
-Placeholder and production sprites in `sprites/` are attributed in `ASSETS.md`. Download from Kenney.nl and export PNGs at the target resolution, then list them in the manifest.
+Kenney art was replaced for **sprites and UI buttons**; see **`ASSETS.md`**. Kenney **audio** placeholders may remain under `audio/` until substituted.
 
 ## AI-generated art
 

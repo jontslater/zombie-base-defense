@@ -65,7 +65,7 @@ Headless smoke (deterministic waves + one **Reborn**): `pnpm smoke:sim` (runs `p
 | `packages/sim` | Deterministic tick sim, gear/skills/workbench commands, co-op helpers, deltas |
 | `apps/desktop` | Vite + Phaser 3 + Tauri shell |
 | `apps/relay` | Node WebSocket relay (`/health`, Railway-ready) |
-| `assets/` | Kenney CC0 sprites, UI, audio + `ASSETS.md` |
+| `assets/` | Procedural strip/UI pixel art (`tools/generate-pixel-sprites.mjs`), atlas output, audio + `ASSETS.md` |
 
 ## Documentation
 
