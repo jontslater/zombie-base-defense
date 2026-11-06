@@ -1,6 +1,20 @@
-import { BASE_UPGRADE_IDS, SKILL_COSTS, SKILL_PREREQS, WORKBENCH_ENHANCE_SCRAP, WORKBENCH_REROLL_CURRENCY, WORKBENCH_REROLL_SCRAP, RARITIES, RARITY_WEIGHTS, type Rarity } from "./constants.js";
+import {
+  BASE_UPGRADE_IDS,
+  RARITIES,
+  RARITY_WEIGHTS,
+  SKILL_COSTS,
+  SKILL_PREREQS,
+  WORKBENCH_ENHANCE_SCRAP,
+  WORKBENCH_REROLL_CURRENCY,
+  WORKBENCH_REROLL_SCRAP,
+  REBORN_MIN_WAVE,
+  rebornStartingCurrency,
+  upgradeCostAtLevel,
+  type Rarity,
+} from "./constants.js";
 import type { BaseUpgradeId, GearSlot, SkillNodeId, Stance, TargetMode } from "./constants.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
+import { createInitialState } from "./save.js";
 import { startWave } from "./waves.js";
 import type { GameState } from "./types.js";
 
@@ -67,6 +81,8 @@ export type WorkbenchRerollCommand = CommandBase & {
   inventoryIndex: number;
 };
 
+export type RebornCommand = CommandBase & { type: "REBORN" };
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -78,14 +94,31 @@ export type GameCommand =
   | SetStanceCommand
   | SetTargetCommand
   | WorkbenchEnhanceCommand
-  | WorkbenchRerollCommand;
+  | WorkbenchRerollCommand
+  | RebornCommand;
 
+/** @deprecated Prefer `upgradeCostAtLevel` from constants. */
 export function upgradeCost(level: number): number {
-  return Math.floor(25 * Math.pow(1.55, level));
+  return upgradeCostAtLevel(level);
+}
+
+export function applyReborn(state: GameState): GameState {
+  if (state.combat !== null) return state;
+  if (state.wave < REBORN_MIN_WAVE) return state;
+  const fresh = createInitialState(state.rngState);
+  const payout = rebornStartingCurrency(state.wave);
+  return {
+    ...fresh,
+    rebornCount: state.rebornCount + 1,
+    lifetimeCurrencyEarned: state.lifetimeCurrencyEarned + payout,
+    currency: payout,
+  };
 }
 
 export function applyCommand(state: GameState, cmd: GameCommand): GameState {
   switch (cmd.type) {
+    case "REBORN":
+      return applyReborn(state);
     case "TICK":
     case "START_WAVE":
       if (cmd.type === "START_WAVE") return startWave(state);

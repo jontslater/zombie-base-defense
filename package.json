@@ -6,7 +6,8 @@
     "dev:relay": "pnpm --filter @zbd/relay dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "typecheck": "pnpm -r run typecheck"
+    "typecheck": "pnpm -r run typecheck",
+    "smoke:sim": "pnpm --filter @zbd/sim smoke"
   },
   "devDependencies": {
     "playwright": "^1.64.1",

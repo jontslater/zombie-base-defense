@@ -48,6 +48,10 @@ export type GameState = {
   combat: WaveCombat | null;
   inventory: GearItem[];
   totalKills: number;
+  /** Times the player has Reborn (prestige stacks). */
+  rebornCount: number;
+  /** Lifetime currency acquired (starting grants, kills, generator, Reborn payout). */
+  lifetimeCurrencyEarned: number;
   rngState: number;
 };
 
