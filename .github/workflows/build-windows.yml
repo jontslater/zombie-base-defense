@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Windows bundle requires `icons/icon.ico`; repo only ships `icon.png` (see tauri.conf.json).
+      - name: Generate Tauri icons for Windows
+        working-directory: apps/desktop
+        run: pnpm exec tauri icon src-tauri/icons/icon.png
+
       - name: Build desktop (Vite)
         run: pnpm --filter @zbd/desktop build
 
