@@ -32,11 +32,23 @@ export const REBORN_DPS_MULT_PER_STACK = 0.05;
 /** Simulation tick rate: 10 ticks per second of game time at 1x speed. */
 export const TICKS_PER_SECOND = 10;
 
-/** Max offline catch-up (8 hours). */
+/** Max offline catch-up (8 hours) — default accrual cap; extended via perimeter grid. */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter; v8: survivor roles + ranked skills; v9: gear sockets/gems/affixes. */
-export const SAVE_VERSION = 9;
+/** Base offline reward accrual cap (same as `OFFLINE_CAP_MS`). */
+export const OFFLINE_CAP_BASE_MS = OFFLINE_CAP_MS;
+
+/** Each unlocked perimeter node extends offline accrual by this many milliseconds (30 min). */
+export const OFFLINE_CAP_BONUS_MS_PER_UNLOCKED_NODE = 30 * 60 * 1000;
+
+/**
+ * Ignore absence beyond this wall clock span for rewards (anti backdated tamper).
+ * ~30 days — matches TBH community “long absence zeros” pattern at a soft bound.
+ */
+export const OFFLINE_ABSENCE_MAX_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter; v8: survivor roles + ranked skills; v9: gear sockets/gem bag/affixes; v10: offline raid rewards + gems wallet. */
+export const SAVE_VERSION = 10;
 
 export const BOSS_EVERY_N_WAVES = 10;
 

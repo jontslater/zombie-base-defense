@@ -7,6 +7,7 @@ export type GameStateDelta = {
   campaignHighestClearedKey?: number;
   currency?: number;
   scrap?: number;
+  gems?: number;
   materials?: GameState["materials"];
   baseCoreHp?: number;
   baseCoreMaxHp?: number;
@@ -29,6 +30,7 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
     "campaignHighestClearedKey",
     "currency",
     "scrap",
+    "gems",
     "materials",
     "baseCoreHp",
     "baseCoreMaxHp",
@@ -86,6 +88,7 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
       delta.campaignHighestClearedKey ?? state.campaignHighestClearedKey,
     currency: delta.currency ?? state.currency,
     scrap: delta.scrap ?? state.scrap,
+    gems: delta.gems ?? state.gems,
     materials: delta.materials ?? state.materials,
     baseCoreHp: delta.baseCoreHp ?? state.baseCoreHp,
     baseCoreMaxHp: delta.baseCoreMaxHp ?? state.baseCoreMaxHp,

@@ -44,6 +44,7 @@ export function createInitialState(seed = 12345): GameState {
     campaignHighestClearedKey: -1,
     currency: INITIAL_CURRENCY,
     scrap: 0,
+    gems: 0,
     materials: emptyMaterials(),
     baseCoreHp: 200,
     baseCoreMaxHp: 200,
@@ -279,6 +280,9 @@ function migrateSave(env: SaveEnvelope): void {
 
   if (prevVersion < 9) {
     migrateGearToV9(env.state);
+  }
+  if (env.state.gems === undefined || env.state.gems === null) {
+    env.state.gems = 0;
   }
 }
 

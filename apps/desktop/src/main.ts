@@ -25,6 +25,7 @@ import {
 } from "./coop/coopSession";
 import { mountCampaignGrid, refreshCampaignGrid } from "./panel/campaignGrid";
 import { mountGearPanel, refreshGearPanelRoot } from "./panel/gearPanel";
+import { showRaidReportOverlay } from "./panel/raidReportOverlay";
 import { wirePanelUiSounds } from "./panel/uiSounds";
 import type { GameStateDelta } from "@zbd/sim";
 
@@ -36,6 +37,15 @@ const coopSession = createCoopSession();
 async function boot() {
   await loadAppConfig();
   runtime = await loadRuntime();
+
+  if (runtime.offlineRaidReport) {
+    document.body.classList.add("expanded");
+    const panel = document.getElementById("panel");
+    panel?.classList.remove("hidden");
+    panel?.setAttribute("aria-hidden", "false");
+    showRaidReportOverlay(runtime.offlineRaidReport);
+    runtime = { ...runtime, offlineRaidReport: null };
+  }
 
   phaserGame = createPhaserGame(document.getElementById("game-root")!, runtime);
   phaserGame.scene.start("strip", { runtime });
@@ -160,9 +170,9 @@ function refreshPanel() {
   const matLine = MATERIAL_IDS.map((id) => `${id.slice(0, 3)} ${s.materials[id]}`).join(" · ");
   status.innerHTML = [
     `Encounter wave ${s.wave} · Tick ${s.tick}`,
-    `Currency ${s.currency} · Scrap ${s.scrap}`,
+    `Currency ${s.currency} · Scrap ${s.scrap} · Gems ${s.gems}`,
     `Materials: ${matLine}`,
-    `Kills ${s.totalKills} · Inv ${s.inventory.length} · Gems ${s.gemInventory.length}`,
+    `Kills ${s.totalKills} · Inv ${s.inventory.length} · Socket gems ${s.gemInventory.length}`,
     `Survivors: ${s.survivors.map((x) => x.name).join(", ")}`,
   ]
     .map((line) => `<div>${line}</div>`)

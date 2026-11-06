@@ -223,6 +223,8 @@ export function applyReborn(state: GameState): GameState {
     rebornCount: state.rebornCount + 1,
     lifetimeCurrencyEarned: state.lifetimeCurrencyEarned + payout,
     currency: payout,
+    gems: state.gems,
+    gemInventory: [...state.gemInventory],
     perimeterUnlocked: { ...state.perimeterUnlocked },
   };
 }

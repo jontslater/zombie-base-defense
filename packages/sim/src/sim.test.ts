@@ -4,7 +4,6 @@ import {
   OFFLINE_CAP_MS,
   RARITIES,
   SAVE_VERSION,
-  TICKS_PER_SECOND,
   applyOfflineProgress,
   buildWaveCombat,
   computeOfflineTicks,
@@ -102,6 +101,7 @@ describe("save round-trip", () => {
     expect(env.state.campaignHighestClearedKey).toBeGreaterThanOrEqual(-1);
     expect(env.state.perimeterUnlocked).toEqual({});
     expect(env.state.gemInventory).toEqual([]);
+    expect(env.state.gems).toBe(0);
   });
 
   it("rejects invalid save envelopes", () => {
@@ -110,18 +110,28 @@ describe("save round-trip", () => {
 });
 
 describe("offline progress", () => {
-  it("caps at 8 hours of ticks", () => {
-    const now = 1_000_000_000_000;
-    const saved = now - OFFLINE_CAP_MS - 60_000;
-    const ticks = computeOfflineTicks(saved, now);
-    expect(ticks).toBe(OFFLINE_CAP_MS / 1000 * TICKS_PER_SECOND);
+  it("does not advance raw sim ticks (TBH-style raid table)", () => {
+    const ticks = computeOfflineTicks(0, 1);
+    expect(ticks).toBe(0);
   });
 
-  it("advances simulation when applying offline", () => {
+  it("grants offline rewards instead of advancing simulation", () => {
     const state = createInitialState(55);
+    state.campaignHighestClearedKey = 2;
     const savedAt = 0;
-    const after = applyOfflineProgress(state, savedAt, 60_000);
-    expect(after.tick).toBeGreaterThan(state.tick);
+    const after = applyOfflineProgress(state, savedAt, 60_000).state;
+    expect(after.tick).toBe(state.tick);
+    expect(after.currency).toBeGreaterThan(state.currency);
+  });
+
+  it("caps raid accrual at default 8h wall-clock", () => {
+    const state = createInitialState(56);
+    state.campaignHighestClearedKey = 0;
+    const now = 1_000_000_000_000;
+    const saved = now - OFFLINE_CAP_MS - 60_000;
+    const short = applyOfflineProgress(state, saved, now);
+    const long = applyOfflineProgress(state, saved - 60 * 60 * 1000, now);
+    expect(short.state.currency).toBe(long.state.currency);
   });
 });
 

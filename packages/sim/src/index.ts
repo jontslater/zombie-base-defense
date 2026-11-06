@@ -9,6 +9,7 @@ export * from "./commands.js";
 export * from "./tick.js";
 export * from "./save.js";
 export * from "./offline.js";
+export * from "./offlineRewards.js";
 export * from "./workbenchMaterials.js";
 export * from "./perimeter.js";
 export * from "./survivorRoles.js";

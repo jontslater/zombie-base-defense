@@ -82,6 +82,10 @@ export type GameState = {
   campaignHighestClearedKey: number;
   currency: number;
   scrap: number;
+  /**
+   * Premium currency (offline raid table + future sinks). Distinct from socket `GemItem` in `gemInventory`.
+   */
+  gems: number;
   /** Salvage materials from breaking down gear (crafting economy). */
   materials: Materials;
   baseCoreHp: number;

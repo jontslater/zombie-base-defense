@@ -12,8 +12,8 @@ await page.goto("http://localhost:4173", { waitUntil: "networkidle" });
 
 await page.evaluate(() => {
   const seed = {
-    version: 9,
-    savedAtMs: Date.now(),
+    version: 10,
+    savedAtMs: Date.now() - 6 * 60 * 60 * 1000,
     state: {
       tick: 120,
       wave: 4,
@@ -21,7 +21,8 @@ await page.evaluate(() => {
       campaignHighestClearedKey: 5,
       currency: 240,
       scrap: 18,
-      perimeterUnlocked: {},
+      gems: 12,
+      perimeterUnlocked: { relay_alpha: true, fence_lamps_row2: true },
       materials: {
         alloy: 2,
         battery: 1,
@@ -115,6 +116,18 @@ await page.evaluate(() => {
 });
 
 await page.waitForLoadState("networkidle");
+await page.screenshot({ path: path.join(outDir, "raid-report-overlay.png") });
+await page
+  .locator(".raid-report-actions button")
+  .first()
+  .click({ timeout: 10_000 })
+  .catch(() => {});
+await page.evaluate(() => {
+  document.body.classList.remove("expanded");
+  const panel = document.getElementById("panel");
+  panel?.classList.add("hidden");
+  panel?.setAttribute("aria-hidden", "true");
+});
 await page.click("#game-root");
 await page.waitForTimeout(400);
 
