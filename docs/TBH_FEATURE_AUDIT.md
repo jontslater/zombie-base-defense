@@ -118,7 +118,7 @@ Each bullet names the system and concrete details where we found them. URLs are 
 | **Workbench** | Enhance (scrap) and reroll (scrap + currency) — `commands.ts` |
 | **Waves** | Infinite wave number; boss every `BOSS_EVERY_N_WAVES` (10) — `waves.ts` |
 | **Offline** | On load, advance sim ticks up to **8h** cap — `offline.ts`, `runtime.ts` |
-| **Reborn (prestige)** | `REBORN` command when idle and `wave >= REBORN_MIN_WAVE`; increments `rebornCount`; resets run with payout; **income/DPS** multipliers stack — `commands.ts` (`applyReborn`), `constants.ts`, `tick.ts`, `waves.ts`; tests `reborn.test.ts`; smoke `pnpm smoke:sim` → `scripts/smoke-reborn.ts` |
+| **Reborn (prestige)** | `REBORN` command when idle and `wave >= REBORN_MIN_WAVE`; increments `rebornCount`; resets run with payout; **income/DPS** multipliers stack — `commands.ts` (`applyReborn`), `constants.ts`, `tick.ts`, `waves.ts`; tests `reborn.test.ts`; smoke `pnpm smoke:sim` → `packages/sim/scripts/smoke-reborn.ts` |
 | **Co-op** | WebSocket relay; invite code; host/guest commands; guest survivor spawn — `apps/desktop`, `apps/relay`, `packages/sim/coop.ts` |
 | **Shell** | Tauri + Phaser **400×80** strip; expandable HTML panel — `stripScene.ts`, `main.ts` |
 | **CI** | Windows **unsigned** Tauri build on PR/tags — `.github/workflows/build-windows.yml` |
