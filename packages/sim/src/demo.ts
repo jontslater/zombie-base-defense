@@ -60,14 +60,7 @@ export function createDemoCombatState(seed: number, kind: DemoCombatKind): GameS
         skillPoints: 2,
         skills: { hu_precision: 1 },
         gear: {
-          weapon: {
-            id: "w1",
-            slot: "weapon",
-            rarity: "Rare",
-            power: 14,
-            sockets: [{ id: "rg1", kind: "ruby", tier: 1 }],
-            affixes: [{ id: "sharp", value: 4 }],
-          },
+          weapon: { id: "w1", slot: "weapon", rarity: "Rare", power: 14 },
         },
         stance: "aggressive",
         target: "nearest",
@@ -129,7 +122,6 @@ export function createDemoCombatState(seed: number, kind: DemoCombatKind): GameS
       bossHpMultiplier: combatDef.bossHpMultiplier,
     },
     inventory: [],
-    gemInventory: [],
     totalKills: 180,
     rebornCount: 0,
     lifetimeCurrencyEarned: 25000,
