@@ -14,6 +14,7 @@ import {
 } from "./gearBonuses.js";
 import { makeGearItem } from "./gearFactory.js";
 import { stanceDamageMultiplier, targetFocusMultiplier } from "./coop.js";
+import { companionDpsMult, companionLootDropChanceAdd } from "./companions.js";
 import {
   perimeterLootDropChanceAdd,
   perimeterRarityBandShiftMult,
@@ -48,6 +49,8 @@ export function buildWaveCombat(wave: number): WaveCombat {
     zombieDamage,
     isBoss,
     bossHpMultiplier: isBoss ? 8 : 1,
+    killsThisWave: 0,
+    wasBossWave: isBoss,
   };
 }
 
@@ -59,7 +62,7 @@ export function startWave(state: GameState): GameState {
 }
 
 export function survivorDps(state: GameState): number {
-  const dpsMult = rebornDpsMultiplier(state.rebornCount);
+  const dpsMult = rebornDpsMultiplier(state.rebornCount) * companionDpsMult(state);
   const turretLevel = state.upgrades.turret;
   const turretSkill = state.survivors.reduce((acc, s) => acc * engineerTurretSkillMultiplier(s), 1);
   const turretBonus = turretLevel * 2 * turretSkill;
@@ -91,7 +94,7 @@ export function rollLoot(state: GameState): { state: GameState; item: GearItem |
   const { result, rngState } = withRng(state, (rng) => {
     const dropChance = Math.min(
       0.65,
-      0.15 + encounterWave * 0.008 + lootBonus + perimeterLootDropChanceAdd(state),
+      0.15 + encounterWave * 0.008 + lootBonus + perimeterLootDropChanceAdd(state) + companionLootDropChanceAdd(state),
     );
     if (rng.next() > dropChance) return null;
 

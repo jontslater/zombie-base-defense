@@ -29,6 +29,7 @@ import {
   type GemCombineCommand,
   type SocketGemCommand,
   type UnsocketGemCommand,
+  type SetEquippedCompanionCommand,
 } from "@zbd/sim";
 
 const SAVE_KEY = "zbd_save_v1";
@@ -137,7 +138,8 @@ export type CommandInput =
   | StripMeta<SocketForgeCommand>
   | StripMeta<GemCombineCommand>
   | StripMeta<SocketGemCommand>
-  | StripMeta<UnsocketGemCommand>;
+  | StripMeta<UnsocketGemCommand>
+  | StripMeta<SetEquippedCompanionCommand>;
 
 export function issueCommand(rt: GameRuntime, partial: CommandInput): GameRuntime {
   const cmd = {

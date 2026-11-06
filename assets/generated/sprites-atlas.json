@@ -159,6 +159,166 @@
         "w": 19,
         "h": 10
       }
+    },
+    "companion_dog": {
+      "frame": {
+        "x": 435,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_drone": {
+      "frame": {
+        "x": 455,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_mutt": {
+      "frame": {
+        "x": 475,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_crow": {
+      "frame": {
+        "x": 495,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_cat": {
+      "frame": {
+        "x": 515,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_badger": {
+      "frame": {
+        "x": 535,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_parrot": {
+      "frame": {
+        "x": 555,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
+    },
+    "companion_raven": {
+      "frame": {
+        "x": 575,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 10
+      },
+      "sourceSize": {
+        "w": 19,
+        "h": 10
+      }
     }
   },
   "meta": {
@@ -167,7 +327,7 @@
     "image": "sprites-atlas.png",
     "format": "RGBA8888",
     "size": {
-      "w": 435,
+      "w": 595,
       "h": 65
     },
     "scale": "1"

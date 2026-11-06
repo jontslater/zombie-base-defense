@@ -47,8 +47,62 @@ export const OFFLINE_CAP_BONUS_MS_PER_UNLOCKED_NODE = 30 * 60 * 1000;
  */
 export const OFFLINE_ABSENCE_MAX_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter; v8: survivor roles + ranked skills; v9: gear sockets/gem bag/affixes; v10: offline raid rewards + gems wallet. */
-export const SAVE_VERSION = 10;
+/**
+ * v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter;
+ * v8: survivor roles + ranked skills; v9: gear sockets/gem bag/affixes;
+ * v10: offline raid rewards + gems wallet; v11: companions + comms milestones.
+ */
+export const SAVE_VERSION = 11;
+
+export const COMPANION_IDS = [
+  "alarms_dog",
+  "drone_scout",
+  "stash_mutt",
+  "relay_crow",
+  "runner_cat",
+  "barricade_badger",
+  "convoy_parrot",
+  "memorial_raven",
+] as const;
+
+export type CompanionId = (typeof COMPANION_IDS)[number];
+
+export const ACHIEVEMENT_IDS = [
+  "m_w01",
+  "m_w05",
+  "m_w10",
+  "m_w25",
+  "m_w50",
+  "m_w100",
+  "m_b1",
+  "m_b3",
+  "m_b5",
+  "m_b10",
+  "m_c10",
+  "m_c30",
+  "m_c60",
+  "m_c90",
+  "m_c120",
+  "m_rb1",
+  "m_rb3",
+  "m_rb5",
+  "m_en5",
+  "m_rr5",
+  "m_sv10",
+  "m_syn1",
+  "m_forge3",
+  "m_mat50",
+  "m_mat200",
+  "m_per1",
+  "m_per3",
+  "m_per5",
+  "m_off1k",
+  "m_off10k",
+  "m_k500",
+  "m_comp2",
+] as const;
+
+export type AchievementId = (typeof ACHIEVEMENT_IDS)[number];
 
 export const BOSS_EVERY_N_WAVES = 10;
 

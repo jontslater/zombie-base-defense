@@ -1,3 +1,9 @@
+import type {
+  AchievementId,
+  CompanionId,
+} from "./constants.js";
+import type { ZombieKindId } from "./zombieKinds.js";
+
 export type Materials = Record<import("./constants.js").MaterialId, number>;
 
 export type GemItem = {
@@ -56,6 +62,26 @@ export type PerimeterUnlocked = Partial<
   Record<import("./constants.js").PerimeterNodeId, true>
 >;
 
+export type CompanionsUnlocked = Partial<Record<CompanionId, true>>;
+
+export type AchievementsUnlocked = Partial<Record<AchievementId, true>>;
+
+export type LifetimeKillsByKind = Partial<Record<ZombieKindId, number>>;
+
+/** Lifetime counters for milestones (deterministic; no RNG). */
+export type GameStateMeta = {
+  /** Never decreases (used for kill milestones); distinct from per-run `totalKills`. */
+  lifetimeTotalKills: number;
+  lifetimeWavesCleared: number;
+  lifetimeBossClears: number;
+  lifetimeWorkbenchEnhances: number;
+  lifetimeWorkbenchRerolls: number;
+  lifetimeSalvages: number;
+  lifetimeSynthesisCombines: number;
+  lifetimeAlchemyForges: number;
+  offlineTicksApplied: number;
+};
+
 export type WaveCombat = {
   zombiesRemaining: number;
   zombiesMax: number;
@@ -63,6 +89,10 @@ export type WaveCombat = {
   zombieDamage: number;
   isBoss: boolean;
   bossHpMultiplier: number;
+  /** Kills scored this encounter (for achievement wave/boss tallies). */
+  killsThisWave: number;
+  /** Encounter was a boss-type wave when it started. */
+  wasBossWave: boolean;
 };
 
 export type GameState = {
@@ -104,6 +134,13 @@ export type GameState = {
   /** Lifetime currency acquired (starting grants, kills, generator, Reborn payout). */
   lifetimeCurrencyEarned: number;
   rngState: number;
+  /** Per-archetype zombie kills (companions + milestones). */
+  lifetimeKillsByKind: LifetimeKillsByKind;
+  meta: GameStateMeta;
+  companionsUnlocked: CompanionsUnlocked;
+  /** Visual-only; passives apply for every unlocked companion. */
+  equippedCompanionId: CompanionId | null;
+  achievementsUnlocked: AchievementsUnlocked;
 };
 
 export type SaveEnvelope = {

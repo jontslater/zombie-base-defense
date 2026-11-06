@@ -117,6 +117,58 @@ button:hover {
   width: 100%;
 }
 
+#toast-host {
+  position: fixed;
+  left: 8px;
+  top: 8px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  max-width: 360px;
+}
+
+.toast {
+  background: #1a2330;
+  border: 1px solid #3d8bfd;
+  color: #e8eef5;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.companion-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.companion-thumb {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.achievement-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.achievement-mark {
+  flex-shrink: 0;
+  width: 1rem;
+  color: #3d8bfd;
+}
+
+.achievement-done .achievement-mark {
+  color: #2ecc71;
+}
+
 #status-lines {
   font-size: 0.75rem;
   line-height: 1.4;

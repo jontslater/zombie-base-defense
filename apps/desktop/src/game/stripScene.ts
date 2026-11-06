@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import {
+  companionDef,
   computeStripCombatSnapshot,
   perimeterUnlockedCount,
   stripCampaignTag,
@@ -22,6 +23,8 @@ export class StripScene extends Phaser.Scene {
   private survivorSprites: Phaser.GameObjects.Image[] = [];
   private survivorHpBars: { back: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle }[] =
     [];
+  /** TBH companion: drawn above survivors/zombies during combat when equipped + unlocked. */
+  private companionSprite: Phaser.GameObjects.Image | null = null;
   private zombieSprites: Phaser.GameObjects.Image[] = [];
   private wallSprites: Phaser.GameObjects.Image[] = [];
   private turretSprites: Phaser.GameObjects.Image[] = [];
@@ -136,6 +139,10 @@ export class StripScene extends Phaser.Scene {
       b.fill.destroy();
     }
     for (const z of this.zombieSprites) z.destroy();
+    if (this.companionSprite) {
+      this.companionSprite.destroy();
+      this.companionSprite = null;
+    }
     this.survivorSprites = [];
     this.survivorHpBars = [];
     this.zombieSprites = [];
@@ -167,6 +174,19 @@ export class StripScene extends Phaser.Scene {
         .setDepth(8);
       this.survivorHpBars.push({ back: hpBack, fill: hpFill });
     });
+
+    const ec = this.rt.state.equippedCompanionId
+      ? companionDef(this.rt.state.equippedCompanionId)
+      : undefined;
+    if (snap && ec && this.rt.state.companionsUnlocked[ec.id]) {
+      const cx = 22 + survivors.length * 22 + 18;
+      const swayBase = snap.swayRad;
+      const cy = 36 + Math.sin(swayBase * 0.6) * 1.2;
+      this.companionSprite = this.add
+        .image(cx, cy, "sprites", ec.spriteKey)
+        .setScale(0.22)
+        .setDepth(5);
+    }
 
     if (!snap) return;
 
