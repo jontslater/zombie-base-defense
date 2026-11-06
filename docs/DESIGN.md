@@ -29,7 +29,7 @@ External summary of TBH’s pillars (for alignment; citations in `docs/TBH_FEATU
 - **Large skill catalog** — build-defining choices beyond raw DPS.
 - **Side systems** — pets, skins/appearance, achievements, materials, trading (we will **not** mirror Steam Market unless scope changes).
 
-Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, **base upgrades**, **salvage/workbench**, and **relay co-op** (TBH is officially **single-player** — co-op is our deliberate differentiator).
+Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, **base upgrades**, **salvage/workbench**, **Reborn** (prestige meta-loop we ship; TBH has no prestige per community wiki), and **relay co-op** (TBH is officially **single-player** — co-op is our deliberate differentiator).
 
 ## Core loop
 
