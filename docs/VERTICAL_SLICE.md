@@ -7,7 +7,7 @@ One shippable slice that proves the product loop, shell, persistence, multiplaye
 | Step | Intent | Code reality today |
 | --- | --- | --- |
 | **Waves** | Survive escalating waves; bosses every **10** waves (`BOSS_EVERY_N_WAVES`). | Implemented in `@zbd/sim` (`waves.ts`, `tick.ts`). |
-| **Scrap / currency** | Earn **currency** + **scrap** from combat; spend on upgrades and workbench. | Implemented (`tick.ts`, `commands.ts`). |
+| **Scrap / currency / materials** | Earn **currency** + **scrap** from combat; **salvage** gear into **materials**; spend on upgrades, workbench, **alchemy forge**, and **synthesis**. | Implemented (`tick.ts`, `commands.ts`, `workbenchMaterials.ts`). |
 | **Upgrade base & skills** | Wall/turret/generator/workbench + skill nodes + gear. | Implemented (`commands.ts`, `constants.ts`). |
 | **Harder waves** | Scaling via wave number in `buildWaveCombat`. | Implemented. |
 | **Reborn** | Prestige reset with stacking **income/DPS** bonuses (`rebornCount`). | Implemented: `REBORN` command, `applyReborn`, tests (`reborn.test.ts`), headless `pnpm smoke:sim`. |

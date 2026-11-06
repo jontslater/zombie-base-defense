@@ -119,6 +119,9 @@ const GUEST_ALLOWED: GameCommand["type"][] = [
   "SET_TARGET",
   "WORKBENCH_ENHANCE",
   "WORKBENCH_REROLL",
+  "SALVAGE_GEAR",
+  "SYNTHESIS_COMBINE",
+  "ALCHEMY_FORGE",
 ];
 
 export function survivorForClient(state: GameState, clientId: string): SurvivorState | undefined {
@@ -144,6 +147,9 @@ export function validateGuestCommand(
       if ("survivorId" in cmd && cmd.survivorId !== owned.id) return null;
       return cmd;
     case "WORKBENCH_REROLL":
+    case "SALVAGE_GEAR":
+    case "SYNTHESIS_COMBINE":
+    case "ALCHEMY_FORGE":
       return cmd;
     default:
       return null;

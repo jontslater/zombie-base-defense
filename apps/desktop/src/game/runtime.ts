@@ -18,6 +18,9 @@ import {
   type SetTargetCommand,
   type WorkbenchEnhanceCommand,
   type WorkbenchRerollCommand,
+  type SalvageGearCommand,
+  type SynthesisCombineCommand,
+  type AlchemyForgeCommand,
 } from "@zbd/sim";
 
 const SAVE_KEY = "zbd_save_v1";
@@ -112,7 +115,10 @@ export type CommandInput =
   | StripMeta<SetStanceCommand>
   | StripMeta<SetTargetCommand>
   | StripMeta<WorkbenchEnhanceCommand>
-  | StripMeta<WorkbenchRerollCommand>;
+  | StripMeta<WorkbenchRerollCommand>
+  | StripMeta<SalvageGearCommand>
+  | StripMeta<SynthesisCombineCommand>
+  | StripMeta<AlchemyForgeCommand>;
 
 export function issueCommand(rt: GameRuntime, partial: CommandInput): GameRuntime {
   const cmd = {

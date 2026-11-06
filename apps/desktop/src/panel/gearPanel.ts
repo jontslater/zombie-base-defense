@@ -1,10 +1,17 @@
 import {
+  ALCHEMY_FORGE_CURRENCY,
+  ALCHEMY_FORGE_MATERIALS,
+  ALCHEMY_FORGE_SCRAP,
   GEAR_SLOTS,
+  MATERIAL_IDS,
+  RARITIES,
   RARITY_COLORS,
   SKILL_COSTS,
   SKILL_NODE_IDS,
   SKILL_PREREQS,
   STANCES,
+  SYNTHESIS_INPUT_COUNT,
+  SYNTHESIS_SCRAP_COST,
   TARGET_MODES,
   WORKBENCH_ENHANCE_SCRAP,
   WORKBENCH_REROLL_CURRENCY,
@@ -50,11 +57,19 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
     });
   });
 
+  const synthesisPick = new Set<number>();
+  let lastInventorySig = "";
+
   const render = () => {
     const rt = getRuntime();
+    const invSig = rt.state.inventory.map((i) => i.id).join("|");
+    if (invSig !== lastInventorySig) {
+      synthesisPick.clear();
+      lastInventorySig = invSig;
+    }
     renderGearTab(gearEl, rt, actions);
     renderSkillsTab(skillsEl, rt, actions);
-    renderWorkbenchTab(benchEl, rt, actions);
+    renderWorkbenchTab(benchEl, rt, actions, synthesisPick);
   };
 
   (root as HTMLElement & { refreshGearPanel?: () => void }).refreshGearPanel = render;
@@ -227,7 +242,12 @@ function renderSkillsTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions
   el.appendChild(tree);
 }
 
-function renderWorkbenchTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions): void {
+function renderWorkbenchTab(
+  el: HTMLElement,
+  rt: GameRuntime,
+  actions: PanelActions,
+  synthesisPick: Set<number>,
+): void {
   el.innerHTML = "";
   const lvl = rt.state.upgrades.workbench;
   const intro = document.createElement("p");
@@ -242,6 +262,76 @@ function renderWorkbenchTab(el: HTMLElement, rt: GameRuntime, actions: PanelActi
   const survivor = activeSurvivor(rt);
   if (!survivor) return;
 
+  const mats = document.createElement("p");
+  mats.className = "muted materials-line";
+  mats.textContent = `Materials: ${MATERIAL_IDS.map((id) => `${id} ${rt.state.materials[id]}`).join(" · ")}`;
+  el.appendChild(mats);
+
+  const alchemyTitle = document.createElement("h3");
+  alchemyTitle.textContent = "Alchemy forge";
+  el.appendChild(alchemyTitle);
+
+  const alchemyP = document.createElement("p");
+  alchemyP.className = "muted";
+  const matCost = MATERIAL_IDS.filter((id) => ALCHEMY_FORGE_MATERIALS[id] > 0)
+    .map((id) => `${id}×${ALCHEMY_FORGE_MATERIALS[id]}`)
+    .join(", ");
+  alchemyP.textContent = `Roll one item into a chosen slot: ${ALCHEMY_FORGE_SCRAP} scrap + ${ALCHEMY_FORGE_CURRENCY}c + ${matCost}`;
+  el.appendChild(alchemyP);
+
+  const forgeRow = document.createElement("div");
+  forgeRow.className = "btn-row";
+  for (const slot of GEAR_SLOTS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = `Forge ${slot}`;
+    btn.addEventListener("click", () =>
+      actions.applyCommand({ type: "ALCHEMY_FORGE", slot: slot as GearSlot }),
+    );
+    forgeRow.appendChild(btn);
+  }
+  el.appendChild(forgeRow);
+
+  const synTitle = document.createElement("h3");
+  synTitle.textContent = "Synthesis crucible";
+  el.appendChild(synTitle);
+
+  const synP = document.createElement("p");
+  synP.className = "muted";
+  synP.textContent = `Select ${SYNTHESIS_INPUT_COUNT} items of the same rarity, then combine (costs ${SYNTHESIS_SCRAP_COST} scrap) for one item of the next tier.`;
+  el.appendChild(synP);
+
+  for (const i of [...synthesisPick]) {
+    if (i < 0 || i >= rt.state.inventory.length) synthesisPick.delete(i);
+  }
+
+  const selectedItems = [...synthesisPick]
+    .map((i) => rt.state.inventory[i])
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
+  const sameRarity =
+    selectedItems.length === SYNTHESIS_INPUT_COUNT &&
+    selectedItems.every((it) => it.rarity === selectedItems[0]?.rarity);
+  const ri = sameRarity ? RARITIES.indexOf(selectedItems[0]!.rarity) : -1;
+  const hasNextTier = ri >= 0 && ri < RARITIES.length - 1;
+  const canCombine =
+    sameRarity &&
+    hasNextTier &&
+    rt.state.scrap >= SYNTHESIS_SCRAP_COST;
+
+  const combine = document.createElement("button");
+  combine.type = "button";
+  combine.disabled = !canCombine;
+  combine.textContent = `Combine (${synthesisPick.size}/${SYNTHESIS_INPUT_COUNT}) — ${SYNTHESIS_SCRAP_COST} scrap`;
+  combine.addEventListener("click", () => {
+    if (synthesisPick.size !== SYNTHESIS_INPUT_COUNT) return;
+    actions.applyCommand({
+      type: "SYNTHESIS_COMBINE",
+      inventoryIndices: [...synthesisPick],
+    });
+    synthesisPick.clear();
+  });
+  el.appendChild(combine);
+
   const enhance = document.createElement("button");
   enhance.type = "button";
   enhance.textContent = `Enhance equipped weapon (${WORKBENCH_ENHANCE_SCRAP} scrap)`;
@@ -254,15 +344,39 @@ function renderWorkbenchTab(el: HTMLElement, rt: GameRuntime, actions: PanelActi
   );
   el.appendChild(enhance);
 
+  const invTitle = document.createElement("h3");
+  invTitle.textContent = "Inventory";
+  el.appendChild(invTitle);
+
   const inv = document.createElement("div");
   inv.className = "inventory-list";
   rt.state.inventory.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "inventory-row";
+    const pick = document.createElement("input");
+    pick.type = "checkbox";
+    pick.title = "Select for synthesis";
+    pick.checked = synthesisPick.has(index);
+    pick.addEventListener("change", () => {
+      if (pick.checked) {
+        if (synthesisPick.size < SYNTHESIS_INPUT_COUNT) synthesisPick.add(index);
+        else pick.checked = false;
+      } else {
+        synthesisPick.delete(index);
+      }
+    });
+    row.appendChild(pick);
+
     const label = document.createElement("span");
     label.style.color = RARITY_COLORS[item.rarity];
     label.textContent = `${item.rarity} ${item.slot} +${item.power}`;
     row.appendChild(label);
+    const salvage = document.createElement("button");
+    salvage.type = "button";
+    salvage.title = "Break into crafting materials";
+    salvage.textContent = "Salvage";
+    salvage.addEventListener("click", () => actions.applyCommand({ type: "SALVAGE_GEAR", inventoryIndex: index }));
+    row.appendChild(salvage);
     const reroll = document.createElement("button");
     reroll.type = "button";
     reroll.textContent = `Reroll (${WORKBENCH_REROLL_SCRAP}s / ${WORKBENCH_REROLL_CURRENCY}c)`;

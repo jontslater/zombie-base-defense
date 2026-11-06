@@ -5,6 +5,7 @@ export type GameStateDelta = {
   wave: number;
   currency?: number;
   scrap?: number;
+  materials?: GameState["materials"];
   baseCoreHp?: number;
   baseCoreMaxHp?: number;
   combat?: GameState["combat"];
@@ -22,6 +23,7 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
   const fields: (keyof GameStateDelta)[] = [
     "currency",
     "scrap",
+    "materials",
     "baseCoreHp",
     "baseCoreMaxHp",
     "totalKills",
@@ -29,8 +31,15 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
     "lifetimeCurrencyEarned",
   ];
   for (const key of fields) {
-    if (prev[key as keyof GameState] !== next[key as keyof GameState]) {
-      (delta as Record<string, unknown>)[key] = next[key as keyof GameState];
+    const pk = key as keyof GameState;
+    const prevVal = prev[pk];
+    const nextVal = next[pk];
+    const differs =
+      key === "materials"
+        ? JSON.stringify(prevVal) !== JSON.stringify(nextVal)
+        : prevVal !== nextVal;
+    if (differs) {
+      (delta as Record<string, unknown>)[key] = nextVal;
       changed = true;
     }
   }
@@ -59,6 +68,7 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
     wave: delta.wave,
     currency: delta.currency ?? state.currency,
     scrap: delta.scrap ?? state.scrap,
+    materials: delta.materials ?? state.materials,
     baseCoreHp: delta.baseCoreHp ?? state.baseCoreHp,
     baseCoreMaxHp: delta.baseCoreMaxHp ?? state.baseCoreMaxHp,
     combat: delta.combat !== undefined ? delta.combat : state.combat,
