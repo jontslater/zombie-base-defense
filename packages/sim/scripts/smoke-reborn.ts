@@ -9,6 +9,7 @@ import { REBORN_MIN_WAVE, upgradeCostAtLevel } from "../src/constants.js";
 import { applyCommand, type GameCommand } from "../src/commands.js";
 import { createInitialState } from "../src/save.js";
 import { advanceTicks } from "../src/tick.js";
+import { campaignWaveNumberFromStageKey } from "../src/campaign.js";
 
 function parseN(): number {
   const raw = process.argv[2];
@@ -49,18 +50,32 @@ function main(): void {
   let guard = 0;
   const maxTicks = 15_000_000;
   let step = 0;
-  // Idle between fights: need wave > N (meaning N waves cleared) and no active combat.
-  while ((state.wave <= N || state.combat !== null) && guard < maxTicks) {
+  /** N encounters cleared ≈ highest linear stage key reaches N-1 (campaign grid advances only on forward clears). */
+  const needHighestKey = N - 1;
+  while (state.campaignHighestClearedKey < needHighestKey && guard < maxTicks) {
     state = trySpendCurrency(state, step);
     state = advanceTicks(state, 400);
     guard += 400;
     step += 1;
   }
 
-  if (state.wave <= N || state.combat !== null) {
+  if (state.campaignHighestClearedKey < needHighestKey) {
     console.error(
-      `smoke: timeout before clearing ${N} waves (wave=${state.wave} combat=${state.combat ? "yes" : "no"})`,
+      `smoke: timeout before ${N} campaign clears (highest=${state.campaignHighestClearedKey} wave=${state.wave} combat=${state.combat ? "yes" : "no"})`,
     );
+    process.exit(1);
+  }
+
+  // Reborn requires idle; wait out active combat without counting that as failure.
+  while (state.combat !== null && guard < maxTicks) {
+    state = trySpendCurrency(state, step);
+    state = advanceTicks(state, 400);
+    guard += 400;
+    step += 1;
+  }
+
+  if (state.combat !== null) {
+    console.error("smoke: timeout waiting for idle before REBORN");
     process.exit(1);
   }
 
@@ -84,6 +99,22 @@ function main(): void {
     process.exit(1);
   }
 
+  if (
+    after.currentStageKey !== 0 ||
+    after.campaignHighestClearedKey !== -1 ||
+    campaignWaveNumberFromStageKey(after.currentStageKey) !== after.wave
+  ) {
+    console.error(
+      "smoke: campaign state after REBORN mismatch",
+      JSON.stringify({
+        currentStageKey: after.currentStageKey,
+        campaignHighestClearedKey: after.campaignHighestClearedKey,
+        wave: after.wave,
+      }),
+    );
+    process.exit(1);
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -92,6 +123,10 @@ function main(): void {
         rebornCount: after.rebornCount,
         currencyAfterReborn: after.currency,
         lifetimeCurrencyEarned: after.lifetimeCurrencyEarned,
+        campaignAfterReborn: {
+          currentStageKey: after.currentStageKey,
+          campaignHighestClearedKey: after.campaignHighestClearedKey,
+        },
       },
       null,
       2,

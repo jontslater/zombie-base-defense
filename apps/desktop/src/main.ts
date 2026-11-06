@@ -23,6 +23,7 @@ import {
   onPlayerLeft,
   onRelayHello,
 } from "./coop/coopSession";
+import { mountCampaignGrid, refreshCampaignGrid } from "./panel/campaignGrid";
 import { mountGearPanel, refreshGearPanelRoot } from "./panel/gearPanel";
 import { wirePanelUiSounds } from "./panel/uiSounds";
 import type { GameStateDelta } from "@zbd/sim";
@@ -119,6 +120,11 @@ function wirePanel() {
   }
 
   mountGearPanel(document.getElementById("gear-panel-root")!, () => runtime, panelActions());
+  mountCampaignGrid(
+    document.getElementById("campaign-grid-root")!,
+    () => runtime,
+    panelActions(),
+  );
   wirePanelUiSounds(panel);
 
   document.getElementById("strip-click-through")?.addEventListener("change", async (ev) => {
@@ -153,7 +159,7 @@ function refreshPanel() {
   const s = runtime.state;
   const matLine = MATERIAL_IDS.map((id) => `${id.slice(0, 3)} ${s.materials[id]}`).join(" · ");
   status.innerHTML = [
-    `Wave ${s.wave} · Tick ${s.tick}`,
+    `Encounter wave ${s.wave} · Tick ${s.tick}`,
     `Currency ${s.currency} · Scrap ${s.scrap}`,
     `Materials: ${matLine}`,
     `Kills ${s.totalKills} · Inventory ${s.inventory.length}`,
@@ -168,6 +174,7 @@ function refreshPanel() {
   });
 
   refreshGearPanelRoot(document.getElementById("gear-panel-root"));
+  refreshCampaignGrid(document.getElementById("campaign-grid-root"));
 }
 
 async function wireRelay() {

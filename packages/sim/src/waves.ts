@@ -1,4 +1,8 @@
 import {
+  campaignStageIsBoss,
+  campaignWaveNumberFromStageKey,
+} from "./campaign.js";
+import {
   BOSS_EVERY_N_WAVES,
   RARITIES,
   RARITY_WEIGHTS,
@@ -34,7 +38,8 @@ export function buildWaveCombat(wave: number): WaveCombat {
 
 export function startWave(state: GameState): GameState {
   if (state.combat) return state;
-  const combat = buildWaveCombat(state.wave);
+  const encounterWave = campaignWaveNumberFromStageKey(state.currentStageKey);
+  const combat = buildWaveCombat(encounterWave);
   return { ...state, combat };
 }
 
@@ -42,7 +47,7 @@ export function survivorDps(state: GameState): number {
   const dpsMult = rebornDpsMultiplier(state.rebornCount);
   const turretLevel = state.upgrades.turret;
   const turretBonus = turretLevel * 2;
-  const bossWave = waveIsBoss(state.wave);
+  const bossWave = campaignStageIsBoss(state.currentStageKey);
   const fromSurvivors = state.survivors.reduce((sum, s) => {
     let dmg = s.damage;
     if (s.skills.damage_1) dmg *= 1.1;

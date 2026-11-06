@@ -211,3 +211,71 @@ button.selected {
   font-size: 0.8rem;
   margin: 8px 0 4px;
 }
+
+.campaign-blurb {
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.campaign-tier-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.campaign-tier-btn {
+  min-width: 68px;
+  font-size: 0.68rem;
+  padding: 4px 6px;
+}
+
+.campaign-tier-active {
+  outline: 1px solid #3d8bfd;
+}
+
+.campaign-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.68rem;
+}
+
+.campaign-act-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.campaign-act-label {
+  min-width: 40px;
+  color: #9fb3c8;
+}
+
+.campaign-cell {
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+.campaign-cell-boss {
+  color: #f1c40f;
+}
+
+.campaign-cell-current {
+  box-shadow: 0 0 0 1px #3d8bfd inset;
+}
+
+.campaign-cell-locked {
+  opacity: 0.38;
+  cursor: default;
+  pointer-events: none;
+}
+
+.campaign-foot {
+  margin: 8px 0 0;
+  line-height: 1.35;
+}

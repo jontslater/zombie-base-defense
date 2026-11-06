@@ -12,13 +12,22 @@ await page.goto("http://localhost:4173", { waitUntil: "networkidle" });
 
 await page.evaluate(() => {
   const seed = {
-    version: 2,
+    version: 5,
     savedAtMs: Date.now(),
     state: {
       tick: 120,
       wave: 4,
+      currentStageKey: 3,
+      campaignHighestClearedKey: 5,
       currency: 240,
       scrap: 18,
+      materials: {
+        alloy: 2,
+        battery: 1,
+        compound: 0,
+        fiber: 1,
+        wiring: 0,
+      },
       baseCoreHp: 180,
       baseCoreMaxHp: 200,
       upgrades: { wall: 1, turret: 0, generator: 0, workbench: 2 },
@@ -77,6 +86,12 @@ await page.click("#game-root");
 await page.waitForTimeout(400);
 
 await page.screenshot({ path: path.join(outDir, "strip-layout.png") });
+
+await page.evaluate(() => {
+  document.getElementById("campaign-grid-root")?.scrollIntoView({ block: "nearest" });
+});
+await page.waitForTimeout(200);
+await page.screenshot({ path: path.join(outDir, "campaign-panel.png") });
 
 await page.click('button[data-subtab="gear"]');
 await page.waitForTimeout(200);
