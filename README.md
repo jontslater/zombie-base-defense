@@ -1,6 +1,6 @@
 # Zombie Base Defense — Milestone 2
 
-Desktop-first idle base defense against zombie waves. The simulation is headless and deterministic; the desktop app renders a **400×80** strip (taskbar-adjacent) with an expandable command panel. Co-op uses a WebSocket relay with invite codes.
+Desktop-first idle base defense against zombie waves. The simulation is headless and deterministic; the desktop app renders a **400×80** strip (taskbar-adjacent) with an expandable command panel. Co-op uses a WebSocket relay with invite codes. The sim includes **Reborn** prestige (reset with stacking meta bonuses) and a **headless smoke** entrypoint — see `packages/sim` and `docs/DESIGN.md`.
 
 ## Requirements
 
@@ -54,7 +54,9 @@ The window is **400×80**, always-on-top, and docks above the Windows taskbar us
 pnpm test
 ```
 
-Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench), `@zbd/relay` (invites, `/health`, host + 2 guests integration).
+Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench, **Reborn**), `@zbd/relay` (invites, `/health`, host + 2 guests integration).
+
+Headless smoke (deterministic waves + one **Reborn**): `pnpm smoke:sim` (runs `pnpm --filter @zbd/sim smoke`).
 
 ## Monorepo layout
 
@@ -64,6 +66,15 @@ Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench), `@zbd/relay
 | `apps/desktop` | Vite + Phaser 3 + Tauri shell |
 | `apps/relay` | Node WebSocket relay (`/health`, Railway-ready) |
 | `assets/` | Kenney CC0 sprites, UI, audio + `ASSETS.md` |
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | North star, TBH depth target, pillars |
+| [`docs/VERTICAL_SLICE.md`](docs/VERTICAL_SLICE.md) | Milestone slices vs TBH parity |
+| [`docs/AGENT_BRIEFS.md`](docs/AGENT_BRIEFS.md) | PR-sized briefs (Round 2+ proposed) |
+| [`docs/TBH_FEATURE_AUDIT.md`](docs/TBH_FEATURE_AUDIT.md) | TBH system inventory + gap table vs this repo |
 
 ## Relay on Railway
 
