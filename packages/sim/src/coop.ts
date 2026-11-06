@@ -4,6 +4,7 @@ import {
   type TargetMode,
   type Stance,
 } from "./constants.js";
+import { SURVIVOR_ROLE_IDS } from "./survivorRoles.js";
 import type { GameCommand } from "./commands.js";
 import type { GameState, SurvivorState } from "./types.js";
 
@@ -39,6 +40,7 @@ export function createCoopSurvivor(clientId: string, name: string, index: number
   return {
     id: `surv-${clientId.slice(0, 8)}`,
     name,
+    role: SURVIVOR_ROLE_IDS[index % SURVIVOR_ROLE_IDS.length]!,
     hp: 75,
     maxHp: 75,
     damage: 10 + index,
@@ -115,6 +117,7 @@ const GUEST_ALLOWED: GameCommand["type"][] = [
   "EQUIP_GEAR",
   "UNEQUIP_GEAR",
   "SPEND_SKILL",
+  "SET_SURVIVOR_ROLE",
   "SET_STANCE",
   "SET_TARGET",
   "WORKBENCH_ENHANCE",
@@ -141,6 +144,7 @@ export function validateGuestCommand(
     case "EQUIP_GEAR":
     case "UNEQUIP_GEAR":
     case "SPEND_SKILL":
+    case "SET_SURVIVOR_ROLE":
     case "SET_STANCE":
     case "SET_TARGET":
     case "WORKBENCH_ENHANCE":

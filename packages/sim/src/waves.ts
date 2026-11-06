@@ -16,6 +16,13 @@ import {
   perimeterRarityBandShiftMult,
   perimeterSurvivorDpsMult,
 } from "./perimeter.js";
+import {
+  engineerTurretSkillMultiplier,
+  survivorSkillDamageMultiplier,
+  survivorSkillMaxHpMultiplier,
+  survivorStanceDamageMultiplier,
+  survivorLootDropSkillBonus,
+} from "./survivorRoles.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import type { GameState, GearItem, WaveCombat } from "./types.js";
 
@@ -51,16 +58,16 @@ export function startWave(state: GameState): GameState {
 export function survivorDps(state: GameState): number {
   const dpsMult = rebornDpsMultiplier(state.rebornCount);
   const turretLevel = state.upgrades.turret;
-  const turretBonus = turretLevel * 2;
+  const turretSkill = state.survivors.reduce((acc, s) => acc * engineerTurretSkillMultiplier(s), 1);
+  const turretBonus = turretLevel * 2 * turretSkill;
   const bossWave = campaignStageIsBoss(state.currentStageKey);
   const fromSurvivors = state.survivors.reduce((sum, s) => {
     let dmg = s.damage;
-    if (s.skills.damage_1) dmg *= 1.1;
-    if (s.skills.damage_2) dmg *= 1.15;
     const weapon = s.gear.weapon;
     if (weapon) dmg += weapon.power * 0.5;
-    dmg *= stanceDamageMultiplier(s.stance);
+    dmg *= survivorStanceDamageMultiplier(s, stanceDamageMultiplier(s.stance));
     dmg *= targetFocusMultiplier(s.target, bossWave);
+    dmg *= survivorSkillDamageMultiplier(s, { isBossWave: bossWave });
     return sum + dmg;
   }, 0);
   return (fromSurvivors + turretBonus) * dpsMult * perimeterSurvivorDpsMult(state);
@@ -68,8 +75,7 @@ export function survivorDps(state: GameState): number {
 
 export function survivorEffectiveHp(state: GameState): number {
   return state.survivors.reduce((sum, s) => {
-    let max = s.maxHp;
-    if (s.skills.hp_1) max *= 1.2;
+    let max = s.maxHp * survivorSkillMaxHpMultiplier(s);
     const armor = s.gear.armor;
     if (armor) max += armor.power;
     return sum + Math.min(s.hp, max);
@@ -79,7 +85,7 @@ export function survivorEffectiveHp(state: GameState): number {
 export function rollLoot(state: GameState, wave: number): { state: GameState; item: GearItem | null } {
   const lootBonus =
     state.upgrades.workbench * 0.02 +
-    state.survivors.reduce((b, s) => (s.skills.loot_1 ? b + 0.05 : b), 0);
+    state.survivors.reduce((b, s) => b + survivorLootDropSkillBonus(s), 0);
 
   const { result, rngState } = withRng(state, (rng) => {
     const dropChance = Math.min(

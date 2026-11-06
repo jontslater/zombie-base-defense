@@ -38,6 +38,7 @@ describe("co-op disconnect grace", () => {
       survivors: [
         {
           ...state.survivors[0]!,
+          role: "brawler",
           controllerId: "guest-1",
           aiControlUntilTick: 100,
           gear: {

@@ -12,11 +12,11 @@ import {
   type MaterialId,
   type PerimeterNodeId,
   type Rarity,
-  type SkillNodeId,
   type Stance,
   type TargetMode,
 } from "./constants.js";
 import { CAMPAIGN_LAST_STAGE_KEY, stageKeyFromCampaignWave } from "./campaign.js";
+import { SKILL_NODE_IDS, SURVIVOR_ROLE_IDS, type SurvivorRoleId } from "./survivorRoles.js";
 import type {
   GearItem,
   GameState,
@@ -70,11 +70,30 @@ function normalizeGearMap(raw: unknown): Partial<Record<GearSlot, GearItem>> {
   return out;
 }
 
-function normalizeSkills(raw: unknown): Partial<Record<SkillNodeId, true>> {
+function defaultRoleForSurvivorId(id: string): SurvivorRoleId {
+  if (id === "surv-1") return "hunter";
+  if (id === "surv-2") return "engineer";
+  return "brawler";
+}
+
+function isSurvivorRole(s: string): s is SurvivorRoleId {
+  return (SURVIVOR_ROLE_IDS as readonly string[]).includes(s);
+}
+
+/** Preserves per-node ranks; forwards legacy boolean lattice keys for migrateSave v8. */
+function normalizeSkills(raw: unknown): SurvivorState["skills"] {
   if (!raw || typeof raw !== "object") return {};
-  const out: Partial<Record<SkillNodeId, true>> = {};
+  const o = raw as Record<string, unknown>;
+  const out: SurvivorState["skills"] = {};
   for (const key of ["damage_1", "damage_2", "hp_1", "loot_1"] as const) {
-    if ((raw as Record<string, unknown>)[key] === true) out[key] = true;
+    if (o[key] === true) out[key] = true;
+  }
+  for (const id of SKILL_NODE_IDS) {
+    const v = o[id];
+    if (typeof v === "number" && Number.isFinite(v) && v >= 1) {
+      out[id] = Math.max(1, Math.floor(v));
+    }
+    if (v === true) out[id] = 1;
   }
   return out;
 }
@@ -120,6 +139,7 @@ export function normalizeSurvivor(raw: unknown, fallbackId: string): SurvivorSta
     return {
       id: fallbackId,
       name: "Survivor",
+      role: defaultRoleForSurvivorId(fallbackId),
       hp: 80,
       maxHp: 80,
       damage: 10,
@@ -150,9 +170,14 @@ export function normalizeSurvivor(raw: unknown, fallbackId: string): SurvivorSta
         ? aiRaw
         : null;
 
+  const roleRaw = o.role;
+  const role: SurvivorRoleId =
+    typeof roleRaw === "string" && isSurvivorRole(roleRaw) ? roleRaw : defaultRoleForSurvivorId(id);
+
   return {
     id,
     name: str(o.name, "Survivor").slice(0, 24),
+    role,
     hp,
     maxHp,
     damage: Math.max(1, num(o.damage, 10)),

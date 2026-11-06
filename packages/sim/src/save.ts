@@ -11,6 +11,12 @@ import {
 } from "./campaign.js";
 import { normalizeGameState } from "./normalize.js";
 import type { GameState, SaveEnvelope } from "./types.js";
+import {
+  SURVIVOR_ROLE_IDS,
+  SKILL_NODE_IDS,
+  type SkillNodeId,
+  type SurvivorRoleId,
+} from "./survivorRoles.js";
 
 function emptyMaterials(): GameState["materials"] {
   return Object.fromEntries(MATERIAL_IDS.map((id) => [id, 0])) as GameState["materials"];
@@ -38,6 +44,7 @@ export function createInitialState(seed = 12345): GameState {
       {
         id: "surv-1",
         name: "Scout",
+        role: "hunter",
         hp: 80,
         maxHp: 80,
         damage: 12,
@@ -52,6 +59,7 @@ export function createInitialState(seed = 12345): GameState {
       {
         id: "surv-2",
         name: "Engineer",
+        role: "engineer",
         hp: 70,
         maxHp: 70,
         damage: 8,
@@ -90,9 +98,90 @@ export function parseSave(json: string): SaveEnvelope {
   return data;
 }
 
+function setSkillRank(skills: GameState["survivors"][0]["skills"], id: SkillNodeId, rank: number): void {
+  const prev = skills[id];
+  const p = typeof prev === "number" ? prev : 0;
+  skills[id] = Math.max(p, rank);
+}
+
+function tier1SkillForRole(role: SurvivorRoleId): SkillNodeId {
+  switch (role) {
+    case "brawler":
+      return "bl_strike";
+    case "medic":
+      return "me_patch";
+    case "engineer":
+      return "en_turret";
+    case "hunter":
+      return "hu_precision";
+    case "spotter":
+      return "sp_loot";
+    case "warden":
+      return "wa_bulwark";
+  }
+}
+
+function tier2DamageSkillForRole(role: SurvivorRoleId): SkillNodeId {
+  switch (role) {
+    case "brawler":
+      return "bl_heavy";
+    case "medic":
+      return "me_mend";
+    case "engineer":
+      return "en_generator";
+    case "hunter":
+      return "hu_weakspot";
+    case "spotter":
+      return "sp_mark";
+    case "warden":
+      return "wa_fortify";
+  }
+}
+
+function migrateSurvivorsToRoles(state: GameState): void {
+  state.survivors.forEach((s, index) => {
+    if (!SURVIVOR_ROLE_IDS.includes(s.role as SurvivorRoleId)) {
+      s.role = SURVIVOR_ROLE_IDS[index % SURVIVOR_ROLE_IDS.length]!;
+    }
+    const role = s.role as SurvivorRoleId;
+    const skills = { ...s.skills } as Record<string, unknown>;
+    const out: GameState["survivors"][0]["skills"] = {};
+
+    const takeRank = (id: SkillNodeId, rank: number): void => {
+      if (SKILL_NODE_IDS.includes(id)) setSkillRank(out, id, rank);
+    };
+
+    for (const [k, v] of Object.entries(skills)) {
+      if (SKILL_NODE_IDS.includes(k as SkillNodeId)) {
+        const r = typeof v === "number" ? v : v === true ? 1 : 0;
+        if (r > 0) takeRank(k as SkillNodeId, r);
+      }
+    }
+
+    const hadBool = (key: string): boolean => skills[key] === true;
+
+    if (hadBool("damage_1")) {
+      takeRank(tier1SkillForRole(role), 1);
+    }
+    if (hadBool("damage_2")) {
+      takeRank(tier1SkillForRole(role), 1);
+      takeRank(tier2DamageSkillForRole(role), 1);
+    }
+    if (hadBool("hp_1")) {
+      takeRank(role === "medic" ? "me_barrier" : "wa_bulwark", 1);
+    }
+    if (hadBool("loot_1")) {
+      takeRank("sp_loot", 1);
+    }
+
+    s.skills = out;
+  });
+}
+
 /**
- * Chained migrations: capture `prevVersion` before bumping so steps keyed to older schema numbers
- * (e.g. campaign grid at envelope v5) still run. Structural coercion for partial JSON is v6+.
+ * Chained migrations: capture `prevVersion` before bumping so steps keyed to older envelope versions
+ * (e.g. campaign grid at v5) still run. Structural coercion for partial JSON is v6+.
+ * v8: survivor roles + per-role ranked skill trees (replaces flat boolean lattice).
  */
 function migrateSave(env: SaveEnvelope): void {
   const prevVersion = env.version;
@@ -102,6 +191,10 @@ function migrateSave(env: SaveEnvelope): void {
 
   if (prevVersion < 6) {
     env.state = normalizeGameState(env.state);
+  }
+
+  if (prevVersion < 8) {
+    migrateSurvivorsToRoles(env.state);
   }
 
   if (!env.state.materials) {
@@ -124,6 +217,10 @@ function migrateSave(env: SaveEnvelope): void {
     if (!s.target) s.target = "nearest";
     if (s.controllerId === undefined) s.controllerId = null;
     if (s.aiControlUntilTick === undefined) s.aiControlUntilTick = null;
+    if (!s.role || !SURVIVOR_ROLE_IDS.includes(s.role as SurvivorRoleId)) {
+      const idx = env.state.survivors.indexOf(s);
+      s.role = SURVIVOR_ROLE_IDS[idx % SURVIVOR_ROLE_IDS.length]!;
+    }
   }
 
   // Campaign grid (SAVE_VERSION 5+ on envelope): clamp legacy infinite ladder into 1–120 encounter waves.
