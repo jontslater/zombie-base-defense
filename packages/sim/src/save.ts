@@ -1,5 +1,14 @@
-import { BASE_UPGRADE_IDS, INITIAL_CURRENCY, SAVE_VERSION } from "./constants.js";
+import {
+  BASE_UPGRADE_IDS,
+  INITIAL_CURRENCY,
+  MATERIAL_IDS,
+  SAVE_VERSION,
+} from "./constants.js";
 import type { GameState, SaveEnvelope } from "./types.js";
+
+function emptyMaterials(): GameState["materials"] {
+  return Object.fromEntries(MATERIAL_IDS.map((id) => [id, 0])) as GameState["materials"];
+}
 
 export function createInitialState(seed = 12345): GameState {
   return {
@@ -7,6 +16,7 @@ export function createInitialState(seed = 12345): GameState {
     wave: 1,
     currency: INITIAL_CURRENCY,
     scrap: 0,
+    materials: emptyMaterials(),
     baseCoreHp: 200,
     baseCoreMaxHp: 200,
     upgrades: {
@@ -74,6 +84,13 @@ export function parseSave(json: string): SaveEnvelope {
 function migrateSave(env: SaveEnvelope): void {
   if (env.version < SAVE_VERSION) {
     env.version = SAVE_VERSION;
+  }
+  if (!env.state.materials) {
+    env.state.materials = emptyMaterials();
+  } else {
+    for (const id of MATERIAL_IDS) {
+      if (env.state.materials[id] === undefined) env.state.materials[id] = 0;
+    }
   }
   for (const id of BASE_UPGRADE_IDS) {
     if (env.state.upgrades[id] === undefined) env.state.upgrades[id] = 0;

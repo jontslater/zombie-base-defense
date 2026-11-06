@@ -1,9 +1,15 @@
 import {
+  ALCHEMY_FORGE_CURRENCY,
+  ALCHEMY_FORGE_MATERIALS,
+  ALCHEMY_FORGE_SCRAP,
   BASE_UPGRADE_IDS,
+  GEAR_SLOTS,
   RARITIES,
   RARITY_WEIGHTS,
   SKILL_COSTS,
   SKILL_PREREQS,
+  SYNTHESIS_INPUT_COUNT,
+  SYNTHESIS_SCRAP_COST,
   WORKBENCH_ENHANCE_SCRAP,
   WORKBENCH_REROLL_CURRENCY,
   WORKBENCH_REROLL_SCRAP,
@@ -16,7 +22,13 @@ import type { BaseUpgradeId, GearSlot, SkillNodeId, Stance, TargetMode } from ".
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import { createInitialState } from "./save.js";
 import { startWave } from "./waves.js";
-import type { GameState } from "./types.js";
+import {
+  addMaterials,
+  materialsCanAfford,
+  subtractMaterials,
+  salvageYieldForGear,
+} from "./workbenchMaterials.js";
+import type { GameState, GearItem } from "./types.js";
 
 export type CommandBase = {
   id: string;
@@ -83,6 +95,21 @@ export type WorkbenchRerollCommand = CommandBase & {
 
 export type RebornCommand = CommandBase & { type: "REBORN" };
 
+export type SalvageGearCommand = CommandBase & {
+  type: "SALVAGE_GEAR";
+  inventoryIndex: number;
+};
+
+export type SynthesisCombineCommand = CommandBase & {
+  type: "SYNTHESIS_COMBINE";
+  inventoryIndices: number[];
+};
+
+export type AlchemyForgeCommand = CommandBase & {
+  type: "ALCHEMY_FORGE";
+  slot: GearSlot;
+};
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -95,7 +122,10 @@ export type GameCommand =
   | SetTargetCommand
   | WorkbenchEnhanceCommand
   | WorkbenchRerollCommand
-  | RebornCommand;
+  | RebornCommand
+  | SalvageGearCommand
+  | SynthesisCombineCommand
+  | AlchemyForgeCommand;
 
 /** @deprecated Prefer `upgradeCostAtLevel` from constants. */
 export function upgradeCost(level: number): number {
@@ -253,6 +283,90 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
         scrap: state.scrap - WORKBENCH_REROLL_SCRAP,
         currency: state.currency - WORKBENCH_REROLL_CURRENCY,
         inventory,
+        rngState,
+      };
+    }
+    case "SALVAGE_GEAR": {
+      if (state.upgrades.workbench <= 0) return state;
+      const item = state.inventory[cmd.inventoryIndex];
+      if (!item) return state;
+      const yieldMap = salvageYieldForGear(item);
+      const inventory = state.inventory.filter((_, i) => i !== cmd.inventoryIndex);
+      return {
+        ...state,
+        inventory,
+        materials: addMaterials(state, yieldMap),
+      };
+    }
+    case "SYNTHESIS_COMBINE": {
+      if (state.upgrades.workbench <= 0) return state;
+      if (state.scrap < SYNTHESIS_SCRAP_COST) return state;
+      const idxs = [...cmd.inventoryIndices];
+      if (idxs.length !== SYNTHESIS_INPUT_COUNT) return state;
+      const uniq = new Set(idxs);
+      if (uniq.size !== SYNTHESIS_INPUT_COUNT) return state;
+      if (idxs.some((i) => i < 0 || i >= state.inventory.length)) return state;
+      const items = idxs.map((i) => state.inventory[i]!);
+      const rarity = items[0]!.rarity;
+      if (items.some((it) => it.rarity !== rarity)) return state;
+      const ri = RARITIES.indexOf(rarity);
+      if (ri < 0 || ri >= RARITIES.length - 1) return state;
+      const nextRarity = RARITIES[ri + 1]!;
+
+      const sortedDesc = [...idxs].sort((a, b) => b - a);
+      let inventory = [...state.inventory];
+      for (const removeAt of sortedDesc) {
+        inventory.splice(removeAt, 1);
+      }
+
+      const wave = state.wave;
+      const { result: newItem, rngState } = withRng(state, (rng) => {
+        const slotRoll = rollInt(rng, 0, 3);
+        const slots = ["weapon", "armor", "tool", "trinket"] as const;
+        const slot = slots[slotRoll]!;
+        const rarityIndex = RARITIES.indexOf(nextRarity);
+        const power = Math.floor((5 + wave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4));
+        const id = `syn-${state.tick}-${rollInt(rng, 1000, 9999)}`;
+        return { id, slot, rarity: nextRarity, power: Math.max(1, power) } satisfies GearItem;
+      });
+
+      return {
+        ...state,
+        inventory: [...inventory, newItem],
+        scrap: state.scrap - SYNTHESIS_SCRAP_COST,
+        rngState,
+      };
+    }
+    case "ALCHEMY_FORGE": {
+      if (state.upgrades.workbench <= 0) return state;
+      if (!GEAR_SLOTS.includes(cmd.slot)) return state;
+      if (
+        state.scrap < ALCHEMY_FORGE_SCRAP ||
+        state.currency < ALCHEMY_FORGE_CURRENCY ||
+        !materialsCanAfford(state, ALCHEMY_FORGE_MATERIALS)
+      ) {
+        return state;
+      }
+      const wave = state.wave;
+      const { result, rngState } = withRng(state, (rng) => {
+        const rarity = pickWeighted(rng, RARITY_WEIGHTS) as Rarity;
+        const rarityIndex = RARITIES.indexOf(rarity);
+        const power = Math.floor((5 + wave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4));
+        const id = `forge-${state.tick}-${rollInt(rng, 1000, 9999)}`;
+        return {
+          id,
+          slot: cmd.slot,
+          rarity,
+          power: Math.max(1, power),
+        } satisfies GearItem;
+      });
+      if (!result) return state;
+      return {
+        ...state,
+        scrap: state.scrap - ALCHEMY_FORGE_SCRAP,
+        currency: state.currency - ALCHEMY_FORGE_CURRENCY,
+        materials: subtractMaterials(state, ALCHEMY_FORGE_MATERIALS),
+        inventory: [...state.inventory, result],
         rngState,
       };
     }

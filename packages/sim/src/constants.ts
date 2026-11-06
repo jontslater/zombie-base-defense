@@ -35,7 +35,7 @@ export const TICKS_PER_SECOND = 10;
 /** Max offline catch-up (8 hours). */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export const BOSS_EVERY_N_WAVES = 10;
 
@@ -116,6 +116,41 @@ export const COOP_AI_GRACE_TICKS = 60 * TICKS_PER_SECOND;
 export const WORKBENCH_ENHANCE_SCRAP = 3;
 export const WORKBENCH_REROLL_SCRAP = 5;
 export const WORKBENCH_REROLL_CURRENCY = 10;
+
+/** Material types from breaking down gear (TBH-style alchemy subset). */
+export const MATERIAL_IDS = ["alloy", "battery", "compound", "fiber", "wiring"] as const;
+export type MaterialId = (typeof MATERIAL_IDS)[number];
+
+/** How many duplicate items of one rarity fuse into the next tier. */
+export const SYNTHESIS_INPUT_COUNT = 9;
+
+/** Scrap consumed per crucible combine (sink). */
+export const SYNTHESIS_SCRAP_COST = 2;
+
+/**
+ * Each material granted when salvaging one item of this rarity.
+ * Totals scale ~linearly with tier to avoid exponential salvage loops.
+ */
+export const SALVAGE_YIELDS: Record<Rarity, Record<MaterialId, number>> = {
+  Common: { alloy: 1, battery: 0, compound: 0, fiber: 0, wiring: 0 },
+  Uncommon: { alloy: 1, battery: 1, compound: 0, fiber: 0, wiring: 0 },
+  Rare: { alloy: 2, battery: 1, compound: 0, fiber: 1, wiring: 0 },
+  Epic: { alloy: 2, battery: 1, compound: 1, fiber: 1, wiring: 0 },
+  Legendary: { alloy: 3, battery: 2, compound: 1, fiber: 1, wiring: 1 },
+  Mythic: { alloy: 3, battery: 2, compound: 2, fiber: 2, wiring: 1 },
+  Apocalyptic: { alloy: 4, battery: 3, compound: 3, fiber: 2, wiring: 2 },
+};
+
+/** Alchemy forge: targeted roll for one slot (material + currency sink). */
+export const ALCHEMY_FORGE_SCRAP = 6;
+export const ALCHEMY_FORGE_CURRENCY = 15;
+export const ALCHEMY_FORGE_MATERIALS: Record<MaterialId, number> = {
+  alloy: 2,
+  battery: 1,
+  compound: 1,
+  fiber: 0,
+  wiring: 1,
+};
 
 export const RARITY_COLORS: Record<Rarity, string> = {
   Common: "#9aa5b1",

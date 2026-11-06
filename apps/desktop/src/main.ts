@@ -9,7 +9,7 @@ import {
   type CommandInput,
 } from "./game/runtime";
 import { RelayClient } from "./net/relayClient";
-import { simTick } from "@zbd/sim";
+import { MATERIAL_IDS, simTick } from "@zbd/sim";
 import { loadAppConfig } from "./config";
 import {
   applyGuestDelta,
@@ -151,9 +151,11 @@ function applyPlayerCommand(partial: CommandInput) {
 function refreshPanel() {
   const status = document.getElementById("status-lines")!;
   const s = runtime.state;
+  const matLine = MATERIAL_IDS.map((id) => `${id.slice(0, 3)} ${s.materials[id]}`).join(" · ");
   status.innerHTML = [
     `Wave ${s.wave} · Tick ${s.tick}`,
     `Currency ${s.currency} · Scrap ${s.scrap}`,
+    `Materials: ${matLine}`,
     `Kills ${s.totalKills} · Inventory ${s.inventory.length}`,
     `Survivors: ${s.survivors.map((x) => x.name).join(", ")}`,
   ]

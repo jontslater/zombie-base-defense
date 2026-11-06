@@ -9,7 +9,7 @@ TBH’s design pattern (see `docs/TBH_FEATURE_AUDIT.md`): **thin always-on view 
 | Step | Intent | Code reality today |
 | --- | --- | --- |
 | **Waves** | Survive escalating waves; bosses every **10** waves (`BOSS_EVERY_N_WAVES`). | Implemented in `@zbd/sim` (`waves.ts`, `tick.ts`). |
-| **Scrap / currency** | Earn **currency** + **scrap** from combat; spend on upgrades and workbench. | Implemented (`tick.ts`, `commands.ts`). |
+| **Scrap / currency / materials** | Earn **currency** + **scrap** from combat; **salvage** gear into **materials**; spend on upgrades, workbench, **alchemy forge**, and **synthesis**. | Implemented (`tick.ts`, `commands.ts`, `workbenchMaterials.ts`). |
 | **Upgrade base & skills** | Wall/turret/generator/workbench + skill nodes + gear. | Implemented (`commands.ts`, `constants.ts`). |
 | **Harder waves** | Scaling via wave number in `buildWaveCombat`. | Implemented. |
 | **Reborn** | Prestige reset with a lasting bonus meta-loop (TBH-style “Reborn”). | Implemented in `@zbd/sim`: `applyReborn`, `rebornCount`, tests in `reborn.test.ts`, balance knobs in `constants.ts`. |

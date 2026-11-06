@@ -1,3 +1,5 @@
+export type Materials = Record<import("./constants.js").MaterialId, number>;
+
 export type GearItem = {
   id: string;
   slot: import("./constants.js").GearSlot;
@@ -41,6 +43,8 @@ export type GameState = {
   wave: number;
   currency: number;
   scrap: number;
+  /** Salvage materials from breaking down gear (crafting economy). */
+  materials: Materials;
   baseCoreHp: number;
   baseCoreMaxHp: number;
   upgrades: BaseUpgrades;
