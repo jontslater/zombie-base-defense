@@ -33,6 +33,8 @@ export function createDemoCombatState(seed: number, kind: DemoCombatKind): GameS
     campaignHighestClearedKey: 12,
     currency: 12840,
     scrap: 64,
+    /** Premium currency (SAVE v10); distinct from socket `gemInventory`. */
+    gems: 42,
     materials: {
       alloy: 4,
       battery: 2,
