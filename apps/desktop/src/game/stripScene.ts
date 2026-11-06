@@ -4,7 +4,11 @@ import {
   computeStripCombatSnapshot,
   perimeterUnlockedCount,
   stripCampaignTag,
+  stripSurvivorSpriteKey,
+  stripZombieKindAtSlot,
+  stripZombieSpriteKey,
   type StripCombatSnapshot,
+  type StripSurvivorFramePhase,
 } from "@zbd/sim";
 import type { GameRuntime } from "./runtime";
 
@@ -97,6 +101,20 @@ export class StripScene extends Phaser.Scene {
     this.prevCoreHp = -1;
   }
 
+  private stripPosePhase(snap: StripCombatSnapshot | null): StripSurvivorFramePhase {
+    const p = snap?.framePhase ?? 0;
+    if (p === 1) return "attack";
+    if (p === 2) return "hurt";
+    return "idle";
+  }
+
+  private stripZombiePosePhase(snap: StripCombatSnapshot | null): "walk" | "attack" | "die" {
+    const p = snap?.framePhase ?? 0;
+    if (p === 1) return "attack";
+    if (p === 2) return "die";
+    return "walk";
+  }
+
   private hash01(seed: number, salt: number): number {
     let x = (seed >>> 0) ^ (salt * 2654435761);
     x ^= x >>> 16;
@@ -152,11 +170,12 @@ export class StripScene extends Phaser.Scene {
     this.clearCombatants();
 
     const survivors = this.rt.state.survivors;
+    const pose = this.stripPosePhase(snap);
     survivors.forEach((sv, i) => {
       const x = 22 + i * 22;
       const swayBase = snap?.swayRad ?? 0;
       const y = 42 + Math.sin(swayBase + i * 0.7) * 1.2;
-      const key = i % 2 === 0 ? "survivor" : "survivor_alt";
+      const key = stripSurvivorSpriteKey(sv.role, i, pose);
       const spr = this.add.image(x, y, "sprites", key).setScale(SURVIVOR_SCALE);
       spr.setFlipX(false);
       spr.setDepth(3);
@@ -195,6 +214,7 @@ export class StripScene extends Phaser.Scene {
     const spread =
       snap.isBoss && snap.zombiesMax <= 4 ? Math.min(42, baseX - zxMin) : Math.min(200, baseX - zxMin);
     const nVisible = snap.isBoss ? Math.min(snap.zombiesRemaining, 5) : Math.min(snap.zombiesRemaining, 10);
+    const zPose = this.stripZombiePosePhase(snap);
 
     for (let i = 0; i < nVisible; i++) {
       const u = nVisible <= 1 ? 0.82 : i / Math.max(1, nVisible - 1);
@@ -203,7 +223,9 @@ export class StripScene extends Phaser.Scene {
         Math.sin((snap.march01 + u * 0.37 + i * 0.09) * Math.PI * 2) * (snap.isBoss ? 2 : 4);
       const x = Phaser.Math.Clamp(xBase + march, zxMin, baseX - 12);
       const y = 42 + Math.sin(snap.swayRad * 0.8 + i * 1.1) * (snap.isBoss ? 1.5 : 2.5);
-      const spr = this.add.image(x, y, "sprites", "zombie").setScale(snap.isBoss ? ZOMBIE_BOSS_SCALE : ZOMBIE_SCALE);
+      const kind = stripZombieKindAtSlot(snap, i, nVisible);
+      const zKey = stripZombieSpriteKey(kind, zPose);
+      const spr = this.add.image(x, y, "sprites", zKey).setScale(snap.isBoss ? ZOMBIE_BOSS_SCALE : ZOMBIE_SCALE);
       spr.setFlipX(true);
       spr.setTint(snap.isBoss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT);
       spr.setDepth(snap.isBoss ? 4 : 3);
@@ -214,18 +236,18 @@ export class StripScene extends Phaser.Scene {
   }
 
   private spawnMuzzleFlash(x: number, y: number) {
-    const g = this.add.graphics().setDepth(12);
-    g.fillStyle(0xffe066, 1);
-    g.fillCircle(x + 10, y - 6, 4);
-    g.fillStyle(0xffffff, 0.85);
-    g.fillCircle(x + 12, y - 8, 2);
+    const flash = this.add
+      .image(x + 10, y - 6, "sprites", "muzzle")
+      .setScale(0.14)
+      .setFlipX(true)
+      .setDepth(12);
     this.tweens.add({
-      targets: g,
+      targets: flash,
       alpha: 0,
-      scale: 1.35,
+      scale: flash.scaleX * 1.35,
       duration: 90,
       ease: "Cubic.Out",
-      onComplete: () => g.destroy(),
+      onComplete: () => flash.destroy(),
     });
   }
 
@@ -240,18 +262,20 @@ export class StripScene extends Phaser.Scene {
   }
 
   private spawnHitParticles(x: number, y: number, isBoss: boolean) {
-    const n = isBoss ? 10 : 6;
-    const baseColor = isBoss ? 0xe8aaff : 0x7fd0ff;
+    const n = isBoss ? 5 : 4;
     for (let i = 0; i < n; i++) {
-      const p = this.add.circle(x, y, isBoss ? 2.2 : 1.6, baseColor, 0.95).setDepth(11);
+      const p = this.add
+        .image(x, y - 2, "sprites", "hit")
+        .setScale(isBoss ? 0.12 : 0.09)
+        .setDepth(11);
       const ang = (i / n) * Math.PI * 2 + y * 0.01;
-      const dist = 8 + (i % 3) * 4;
+      const dist = 6 + (i % 3) * 3;
       this.tweens.add({
         targets: p,
         x: x + Math.cos(ang) * dist,
         y: y + Math.sin(ang) * dist - 4,
         alpha: 0,
-        scale: 0,
+        scale: p.scaleX * 0.3,
         duration: 220 + i * 15,
         ease: "Cubic.Out",
         onComplete: () => p.destroy(),

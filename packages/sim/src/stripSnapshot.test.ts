@@ -17,5 +17,6 @@ describe("stripCombatSnapshot", () => {
     expect(snap!.zombiesRemaining).toBe(s.combat!.zombiesRemaining);
     expect(snap!.march01).toBeGreaterThanOrEqual(0);
     expect(snap!.march01).toBeLessThan(1);
+    expect([0, 1, 2]).toContain(snap!.framePhase);
   });
 });

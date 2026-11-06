@@ -1,63 +1,57 @@
 # Assets
 
-All art and audio in this directory are from [Kenney.nl](https://kenney.nl) packs, licensed **CC0 1.0** (public domain). Credit is appreciated but not required — see [Kenney support / license](https://kenney.nl/support).
+## Current art mix
 
-No AI-generated images are included.
+**Strip combat sprites** (`sprites/*.png` listed in `sprite.manifest.json`), **Phaser atlas FX** (`hit`, `muzzle`, `projectile`), **companion thumbnails**, and **gear slot icons** (weapon, armor, tool, trinket) plus **gem socket color icons** are **AI-generated or AI-assisted** pixel art, exported to match `docs/DESIGN.md` ART_RULES (and `assets/art-rules.json`). **Disclose AI-assisted artwork on store listings** — see `docs/STORE.md`.
 
-## Source packs
+**UI chrome and audio** still use **Kenney CC0** packs where noted below (buttons, some panel chrome, hit/interface sounds).
+
+## Kenney (CC0) — remaining files
+
+Attribution for files still sourced from [Kenney.nl](https://kenney.nl), licensed **CC0 1.0**.
 
 | Pack | URL | License | Used for |
 | --- | --- | --- | --- |
-| Top-down Shooter | https://kenney.nl/assets/top-down-shooter | CC0 1.0 | Survivors, zombie base sprite (tinted in-game), weapon icon |
-| Tower Defense Kit | https://kenney.nl/assets/tower-defense-kit | CC0 1.0 | Base core, walls, turrets, projectiles |
-| UI Pack | https://kenney.nl/assets/ui-pack | CC0 1.0 | Panel button chrome and icons |
+| UI Pack | https://kenney.nl/assets/ui-pack | CC0 1.0 | Panel button backgrounds, checkmarks, section markers |
 | Impact Sounds | https://kenney.nl/assets/impact-sounds | CC0 1.0 | Combat hit feedback |
 | Interface Sounds | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Panel click / select feedback |
 
-Packs were downloaded from Kenney.nl inside the development environment (November 2026).
+Previously: Top-down Shooter and Tower Defense Kit placeholders for strip sprites — **replaced** by the AI art pass listed in the manifest.
 
-## Sprite manifest (strip combat art)
+## Sprite manifest (strip + DOM slices)
 
-Strip Phaser sprites are listed in **`sprite.manifest.json`** and packed to **`generated/sprites-atlas.png`** + **`generated/sprites-atlas.json`** (plus **`generated/slices/*.png`** for DOM/CSS). See **`README.md`** in this folder for Kenney vs AI intake. Rebuild with `pnpm build:sprites` or via `pnpm dev` / `pnpm --filter @zbd/desktop build`.
+Strip Phaser sprites are listed in **`sprite.manifest.json`** and packed to **`generated/sprites-atlas.png`** + **`generated/sprites-atlas.json`** (plus **`generated/slices/<key>.png`** for `<img>` / CSS). Rebuild with **`pnpm build:sprites`** from the repo root (or `pnpm dev` / `pnpm --filter @zbd/desktop build`).
 
-## Files in this repo
+### `sprites/` (atlas sources)
 
-### `sprites/`
-
-| File | Kenney source | Role |
+| File / key | Source | Role |
 | --- | --- | --- |
-| `survivor.png` | Top-down Shooter · Survivor 1 · `survivor1_gun.png` | Primary survivor (left, faces right) |
-| `survivor_alt.png` | Top-down Shooter · Soldier 1 · `soldier1_gun.png` | Second survivor variant |
-| `zombie.png` | Top-down Shooter · Zombie 1 · `zoimbie1_gun.png` | Zombie (right, faces left; green tint in Phaser) |
-| `base.png` | Tower Defense Kit · `tile-spawn.png` | Base core on the far right |
-| `wall.png` | Tower Defense Kit · `wood-structure-high.png` | Wall segments by upgrade level |
-| `turret.png` | Tower Defense Kit · `weapon-turret.png` | Turret by upgrade level |
-| `projectile.png` | Tower Defense Kit · `weapon-ammo-bullet.png` | Strip combat bullets |
-| `weapon_icon.png` | Top-down Shooter · `weapon_gun.png` | Gear panel weapon slot icon |
+| `survivor*.png`, `survivor_alt*.png`, `survivor_melee*.png` | AI | Gunner, soldier, melee stance frames |
+| `shambler*` … `boss*` | AI | Per-kind zombie walk / attack / die |
+| `zombie.png` | AI | Legacy key (shambler walk) |
+| `base.png`, `wall.png`, `turret.png` | AI | Base core, walls, turrets |
+| `projectile.png`, `hit.png`, `muzzle.png` | AI | Strip combat FX |
+| `weapon_icon.png` … `trinket_icon.png`, `gem_*.png` | AI | Gear + gem color icons |
+| `companion_*.png` | AI | Companion strip / list thumbs (matches sim `spriteKey`) |
 
 ### `ui/`
 
-| File | Kenney source | Role |
+| File | Source | Role |
 | --- | --- | --- |
-| `button_round_flat.png` | UI Pack · Blue Default | Subtab / pill button background |
-| `button_square_border.png` | UI Pack · Blue Default | Primary panel button background |
-| `icon_checkmark.png` | UI Pack | Skill owned indicator |
-| `icon_circle.png` | UI Pack | Generic slot marker |
-| `icon_armor.png` | UI Pack · `icon_outline_square.png` | Armor slot icon |
-| `icon_tool.png` | Top-down Shooter · `weapon_machine.png` | Tool slot icon |
-| `star.png` | UI Pack | Trinket slot icon |
+| `button_round_flat.png` | Kenney UI Pack | Subtab / pill button background |
+| `button_square_border.png` | Kenney UI Pack | Primary panel button background |
+| `icon_checkmark.png` | Kenney UI Pack | Skill owned indicator |
+| `icon_circle.png` | Kenney UI Pack | Generic slot marker |
 
 ### `audio/`
 
-| File | Kenney source | Role |
-| --- | --- | --- |
-| `hit.ogg` | Impact Sounds · `impactGeneric_light_004.ogg` | Strip hit when zombies take damage |
-| `ui_click.ogg` | Interface Sounds · `click_001.ogg` | Panel button press |
-| `ui_select.ogg` | Interface Sounds · `select_004.ogg` | Subtab change |
+| File | Source |
+| --- | --- |
+| `hit.ogg` | Kenney Impact Sounds |
+| `ui_click.ogg` | Kenney Interface Sounds |
+| `ui_select.ogg` | Kenney Interface Sounds |
 
 ## Layout notes
 
 - Strip canvas: **400×80** px.
-- Survivors on the **left**, `flipX = false` (face right).
-- Zombies on the **right**, `flipX = true` (face left).
-- Sprites are scaled in Phaser to stay readable at strip size.
+- Sprites target **32×32 or 64×64** source frames at 1×; scale in Phaser as needed.

@@ -13,6 +13,7 @@ export * from "./offlineRewards.js";
 export * from "./workbenchMaterials.js";
 export * from "./perimeter.js";
 export * from "./stripSnapshot.js";
+export * from "./spriteKeys.js";
 export * from "./demo.js";
 export * from "./survivorRoles.js";
 export * from "./gearModel.js";

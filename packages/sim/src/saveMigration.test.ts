@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SAVE_VERSION } from "./constants.js";
 import { loadFromJson } from "./index.js";
 import type { GameState } from "./types.js";
+import { emptyZombieKillsByKind } from "./zombieKinds.js";
 
 describe("save migration v7 → v8 survivor roles/skills", () => {
   it("maps legacy boolean skills to ranked tree after perimeter-era save", () => {
@@ -47,6 +48,21 @@ describe("save migration v7 → v8 survivor roles/skills", () => {
       rebornCount: 0,
       lifetimeCurrencyEarned: 10,
       rngState: 1,
+      lifetimeKillsByKind: emptyZombieKillsByKind(),
+      meta: {
+        lifetimeTotalKills: 0,
+        lifetimeWavesCleared: 0,
+        lifetimeBossClears: 0,
+        lifetimeWorkbenchEnhances: 0,
+        lifetimeWorkbenchRerolls: 0,
+        lifetimeSalvages: 0,
+        lifetimeSynthesisCombines: 0,
+        lifetimeAlchemyForges: 0,
+        offlineTicksApplied: 0,
+      },
+      companionsUnlocked: {},
+      equippedCompanionId: null,
+      achievementsUnlocked: {},
     };
 
     const json = JSON.stringify({
