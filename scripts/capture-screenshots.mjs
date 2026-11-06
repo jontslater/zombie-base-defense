@@ -1,6 +1,8 @@
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
 const outDir = "/opt/cursor/artifacts/screenshots";
 mkdirSync(outDir, { recursive: true });
@@ -152,3 +154,10 @@ await page.screenshot({ path: path.join(outDir, "coop-two-clients.png") });
 
 await browser.close();
 console.log("screenshots saved to", outDir);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const stripScript = path.join(__dirname, "capture-strip.mjs");
+const stripRun = spawnSync(process.execPath, [stripScript], { stdio: "inherit" });
+if (stripRun.status !== 0) {
+  console.warn("capture-strip.mjs exited", stripRun.status);
+}

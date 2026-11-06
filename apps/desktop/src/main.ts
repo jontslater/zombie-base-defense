@@ -2,6 +2,7 @@ import { createPhaserGame, getStripScene } from "./game/stripScene";
 import {
   BASE_UPGRADE_IDS,
   loadRuntime,
+  newRuntime,
   persistRuntime,
   upgradeLabel,
   type GameRuntime,
@@ -9,7 +10,7 @@ import {
   type CommandInput,
 } from "./game/runtime";
 import { RelayClient } from "./net/relayClient";
-import { MATERIAL_IDS, simTick } from "@zbd/sim";
+import { MATERIAL_IDS, simTick, createDemoCombatState, loadFromJson, saveToJson } from "@zbd/sim";
 import { loadAppConfig } from "./config";
 import {
   applyGuestDelta,
@@ -33,9 +34,28 @@ let phaserGame: Phaser.Game;
 let relay: RelayClient | null = null;
 const coopSession = createCoopSession();
 
+function demoQueryMode(): "combat" | "boss" | null {
+  if (import.meta.env.VITE_DEMO === "1") return "combat";
+  const p = new URLSearchParams(window.location.search);
+  const d = p.get("demo");
+  if (d === "combat" || d === "boss") return d;
+  return null;
+}
+
 async function boot() {
   await loadAppConfig();
-  runtime = await loadRuntime();
+  const demo = demoQueryMode();
+  if (demo) {
+    const seed = 9001;
+    const json = saveToJson(
+      createDemoCombatState(seed, demo === "boss" ? "boss" : "mid_fight"),
+      Date.now(),
+    );
+    const { state, savedAtMs } = loadFromJson(json);
+    runtime = { ...newRuntime(seed), state, lastSaveMs: savedAtMs };
+  } else {
+    runtime = await loadRuntime();
+  }
 
   phaserGame = createPhaserGame(document.getElementById("game-root")!, runtime);
   phaserGame.scene.start("strip", { runtime });
