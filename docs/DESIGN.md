@@ -1,8 +1,8 @@
-# Zombie Base Defense — design intent (M2+)
+# Zombie Base Defense — Design (M2+)
 
 ## Pitch
 
-A **desktop-first** idle base defense: survivors on the **left** (facing **right**) hold the line while a zombie horde closes in from the **right**. A **base core** sits on the **far right**. You **build and upgrade** the base (walls, turrets, generator, workbench), **equip and enhance** gear, and **spend skill nodes** on survivors. Progression echoes **Task Bar Hero (TBH)**—short sessions, compounding upgrades, and room to grow offline—plus **Reborn** prestige in `@zbd/sim` (stacking meta bonuses after reset).
+A **desktop-first** idle base defense: survivors on the **left** (facing **right**) hold the line while a zombie horde closes in from the **right**. A **base core** sits on the **far right**. You **build and upgrade** the base (walls, turrets, generator, workbench), **equip and enhance** gear, and **spend skill nodes** on survivors. Progression echoes **Task Bar Hero (TBH)**—short sessions, compounding upgrades, and room to grow offline—plus **Reborn** prestige in `@zbd/sim` (`applyReborn`, `rebornCount`, balance knobs in `constants.ts`)—stacking meta bonuses after reset.
 
 ## North star (locked)
 
@@ -11,16 +11,16 @@ These constraints are **non-negotiable** for the product direction:
 1. **Desktop-first (Tauri)** — a **~400×80** horizontal strip docked **above the Windows taskbar**, always-on-top, lightweight enough to run beside real work.
 2. **Unsigned CI installer** — Windows **NSIS/MSI** artifacts from GitHub Actions **without** paid code signing (see `.github/workflows/build-windows.yml`).
 3. **Save / load** — durable progress with migration hooks in `@zbd/sim` (`save.ts`) and persistence in the desktop shell (`runtime.ts` / Tauri `read_save`/`write_save`).
-4. **Relay co-op** — **invite-code** rooms over WebSocket (`apps/relay`); host authoritative sim; guests control assigned survivors (see `README.md`). Up to **4** players (`MAX_PLAYERS` in `apps/relay/src/invite.ts`).
+4. **Relay co-op** — **invite-code** rooms over WebSocket (`apps/relay`); host authoritative sim; guests control assigned survivors (see `README.md` co-op model).
 5. **AI art pass** — generated or assisted art follows **ART_RULES** below and `assets/ASSETS.md`, with **visible disclosure** on store listings (per platform policy).
-6. **Headless checks** — `pnpm test` in CI; Reborn smoke via `pnpm smoke:sim` (see `packages/sim/scripts/smoke-reborn.ts`). **Note:** a dedicated “smoke on every PR” workflow may still be added (see `docs/VERTICAL_SLICE.md`).
+6. **Headless smoke** — `@zbd/sim` exposes `pnpm --filter @zbd/sim smoke` (`packages/sim/scripts/smoke-reborn.ts`); **every PR should stay mergeable** with `pnpm test` green; wiring smoke into **GitHub Actions on every PR** is tracked in Round 1 (Lane C / vertical slice).
 7. **No paid signing** in the default release path (see item 2).
 
 ## Depth target: “Taskbar Hero–class” loop
 
 **TBH: Task Bar Hero** (Nugem / Steam) is the **gameplay-depth reference**, not a pixel-for-pixel clone. We aim for **comparable systemic richness**: long-horizon gear/crafting/meta progression, many optional knobs, and an idle-friendly core that still rewards planning between waves.
 
-External summary of TBH’s pillars (citations in `docs/TBH_FEATURE_AUDIT.md`):
+External summary of TBH’s pillars (for alignment; citations in `docs/TBH_FEATURE_AUDIT.md`):
 
 - **Campaign breadth** — multi-act structure, multiple difficulties, many stage entries.
 - **Gear fantasy** — many equipment types, **long rarity tail**, sockets/mod layers.
@@ -34,10 +34,10 @@ Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, *
 ## Core loop
 
 1. **Combat waves** — Headless sim (`packages/sim`) advances at **10 ticks per second** (`TICKS_PER_SECOND`). When idle between fights, waves auto-start on a timer (every **3s** of sim time in current code).
-2. **Rewards** — Kills grant **currency** and **scrap**; loot rolls into **inventory**; income/DPS can scale with **Reborn** stacks (`rebornCount`).
+2. **Rewards** — Kills grant **currency** and **scrap**; loot rolls into **inventory** (rarities and workbench actions live in sim). Income scales with **Reborn** stacks via `REBORN_INCOME_MULT_PER_STACK` in `constants.ts`.
 3. **Spend** — Currency upgrades base tracks; scrap/currency feed **workbench** enhance/reroll; skill points unlock **skill nodes**.
-4. **Reborn** — `REBORN` command resets run progress at minimum wave (`REBORN_MIN_WAVE`); increases `rebornCount` and applies stacking bonuses (see `constants.ts`, `commands.ts`).
-5. **Co-op** — Host **create_room** → guests **redeem**; host-authoritative sim; guests spawn on the next **5s** boundary (`COOP_JOIN_INTERVAL_TICKS`).
+4. **Reborn** — At minimum wave (`REBORN_MIN_WAVE`, idle / not in combat), **Reborn** resets the run, increments `rebornCount`, and reapplies starting currency from `rebornStartingCurrency` plus persistent DPS scaling (`REBORN_DPS_MULT_PER_STACK`). See `commands.ts` / `reborn.test.ts`.
+5. **Co-op** — Up to **4** players (`MAX_PLAYERS` in `apps/relay`): host gets an invite **code**, guests **redeem** and join; host-authoritative sim with relay message types `host_snapshot` / `host_delta` / `guest_command` (`apps/relay`). Guests spawn on the next **5s** sim boundary (`COOP_JOIN_INTERVAL_TICKS`).
 
 ## Player shell
 
@@ -65,10 +65,6 @@ Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, *
 
 **AI-generated art**: **Allowed** for sprites, UI, and promotional art **if** it follows this style guide. **Store listing** must **disclose** AI-assisted artwork (per platform policy and team ethics).
 
-## Builds and signing
-
-**Code signing stays off** for the first Windows drops: CI produces **unsigned** NSIS/MSI artifacts (`.github/workflows/build-windows.yml`) suitable for testing on a designated PC.
-
 ## Product pillars (ZBD)
 
 1. **Readable strip** — at a glance: wave pressure, core health, currency, combat tempo.
@@ -77,24 +73,29 @@ Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, *
 4. **Fair offline** — bounded catch-up consistent with design (today: tick advance with cap — see `offline.ts`; evolving toward TBH-style **reward tables** is backlog).
 5. **Modest scope explosion** — depth should come from **data + systems**, not from abandoning the strip constraint.
 
-## Current simulation snapshot (authoritative detail in code)
+## Current simulation snapshot (Milestone 2+)
 
-- **Economy:** `currency`, `scrap`, `lifetimeCurrencyEarned`.
+Authoritative detail lives in code; this is a **summary**:
+
+- **Economy:** `currency` (build purchases) and `scrap` (workbench); Reborn stacks tune kill/generator income.
 - **Defenses:** `wall`, `turret`, `generator`, `workbench` base upgrades.
 - **Survivors:** gear slots, stances, target modes, small **skill** lattice, optional relay control.
-- **Combat:** wave scaling, periodic **boss** waves, core + survivor damage split.
+- **Combat:** wave scaling, periodic **boss** waves, core + survivor damage split; DPS scales with Reborn via `rebornDpsMultiplier`.
 - **Loot:** rarity-weighted drops with a **power** stat; workbench **enhance** and **reroll**.
-- **Prestige:** **Reborn** — `rebornCount`, payout from wave level, income/DPS multipliers per stack.
+- **Prestige:** **Reborn** command resets run state while keeping `rebornCount` and applying payout from `rebornStartingCurrency`.
 
 ## Roadmap coordination
 
-- **Round 1 — Reborn + balance**: **landed** in `@zbd/sim` (see `reborn.test.ts`, `smoke-reborn.ts`). Ongoing tuning may continue without redefining scope here.
-- **Round 1 — art pipeline, save/load + CI**: may still be in flight; coordinate with active owners.
+- **Round 1** (in flight elsewhere): balance + Reborn tuning, art pipeline, save/load hardening, **CI smoke on every PR**. **Do not duplicate or rewrite Round 1 plans here**—see `docs/AGENT_BRIEFS.md` Lanes A–C and `docs/VERTICAL_SLICE.md` Slice 1.
 - **Round 2+** — see `docs/AGENT_BRIEFS.md` for PR-sized lanes toward TBH-style depth.
+
+## Builds and signing
+
+**Code signing stays off** for the first Windows drops: CI produces **unsigned** NSIS/MSI artifacts (`.github/workflows/build-windows.yml`) suitable for testing on a designated PC.
 
 ## Related documents
 
 - `docs/TBH_FEATURE_AUDIT.md` — system-by-system TBH inventory + gap table.
-- `docs/VERTICAL_SLICE.md` — slice definition and TBH parity passes.
-- `docs/AGENT_BRIEFS.md` — Round 1 templates + Round 2+ briefs.
+- `docs/VERTICAL_SLICE.md` — slice definition, milestones, and TBH parity passes.
+- `docs/AGENT_BRIEFS.md` — agent-executable briefs.
 - `README.md` — build/run/co-op/developer setup.
