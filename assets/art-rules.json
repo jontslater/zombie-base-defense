@@ -1,0 +1,23 @@
+{
+  "title": "Zombie Base Defense — ART_RULES (machine-readable)",
+  "source": "docs/DESIGN.md",
+  "palette": {
+    "uiGroundDark": "#0b0f14",
+    "chromeNeutral": "#2a3544",
+    "textCool": "#e8eef5",
+    "accent": "#3d8bfd",
+    "lootTiersNote": "Align strip loot/UI highlights with RARITY_COLORS in packages/sim/src/constants.ts when showing rarity."
+  },
+  "pixelSize": {
+    "targetSourceSprite": ["32x32", "64x64"],
+    "stripScaleNote": "Source sprites at 1× in the strip; scale in-engine as needed.",
+    "uiIconsHeightPx": [16, 32]
+  },
+  "silhouette": "Readable at 1× in the strip: big head/shoulders or props; avoid fine hair strands or 1px detail that disappears at strip scale.",
+  "facing": {
+    "survivors": "Face right (flipX false in strip).",
+    "zombies": "Face left toward the base (flipX true).",
+    "base": "Neutral or slight three-quarter toward center."
+  },
+  "outline": "1px dark outline on characters and large UI icons unless the style is explicitly outline-free everywhere (default: outlined for strip clarity)."
+}
