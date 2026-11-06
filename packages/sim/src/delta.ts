@@ -19,6 +19,11 @@ export type GameStateDelta = {
   totalKills?: number;
   rebornCount?: number;
   lifetimeCurrencyEarned?: number;
+  lifetimeKillsByKind?: GameState["lifetimeKillsByKind"];
+  meta?: GameState["meta"];
+  companionsUnlocked?: GameState["companionsUnlocked"];
+  equippedCompanionId?: GameState["equippedCompanionId"];
+  achievementsUnlocked?: GameState["achievementsUnlocked"];
 };
 
 export function diffGameState(prev: GameState, next: GameState): GameStateDelta | null {
@@ -37,6 +42,7 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
     "totalKills",
     "rebornCount",
     "lifetimeCurrencyEarned",
+    "equippedCompanionId",
   ];
   for (const key of fields) {
     const pk = key as keyof GameState;
@@ -54,6 +60,22 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
 
   if (JSON.stringify(prev.perimeterUnlocked) !== JSON.stringify(next.perimeterUnlocked)) {
     delta.perimeterUnlocked = next.perimeterUnlocked;
+    changed = true;
+  }
+  if (JSON.stringify(prev.lifetimeKillsByKind) !== JSON.stringify(next.lifetimeKillsByKind)) {
+    delta.lifetimeKillsByKind = next.lifetimeKillsByKind;
+    changed = true;
+  }
+  if (JSON.stringify(prev.meta) !== JSON.stringify(next.meta)) {
+    delta.meta = next.meta;
+    changed = true;
+  }
+  if (JSON.stringify(prev.companionsUnlocked) !== JSON.stringify(next.companionsUnlocked)) {
+    delta.companionsUnlocked = next.companionsUnlocked;
+    changed = true;
+  }
+  if (JSON.stringify(prev.achievementsUnlocked) !== JSON.stringify(next.achievementsUnlocked)) {
+    delta.achievementsUnlocked = next.achievementsUnlocked;
     changed = true;
   }
 
@@ -100,5 +122,10 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
     totalKills: delta.totalKills ?? state.totalKills,
     rebornCount: delta.rebornCount ?? state.rebornCount,
     lifetimeCurrencyEarned: delta.lifetimeCurrencyEarned ?? state.lifetimeCurrencyEarned,
+    lifetimeKillsByKind: delta.lifetimeKillsByKind ?? state.lifetimeKillsByKind,
+    meta: delta.meta ?? state.meta,
+    companionsUnlocked: delta.companionsUnlocked ?? state.companionsUnlocked,
+    equippedCompanionId: delta.equippedCompanionId ?? state.equippedCompanionId,
+    achievementsUnlocked: delta.achievementsUnlocked ?? state.achievementsUnlocked,
   };
 }

@@ -1,6 +1,7 @@
 import { processAiGraceDepartures } from "./coop.js";
 import {
   advanceCampaignAfterStageClear,
+  campaignStageIsBoss,
   campaignWaveNumberFromStageKey,
   stageKeyFromCampaignWave,
 } from "./campaign.js";
@@ -15,13 +16,21 @@ import { makeGemItem } from "./gearFactory.js";
 import { partyScrapBonusPerKill } from "./gearBonuses.js";
 import { applyCommand, type GameCommand } from "./commands.js";
 import {
+  companionCoreMitigationMult,
+  companionCurrencyIncomeMult,
+  companionRegenMult,
+  companionScrapPerKill,
+} from "./companions.js";
+import {
   perimeterCoreMitigationMult,
   perimeterCurrencyIncomeMult,
   perimeterTrapFrequencyDivisorBonus,
 } from "./perimeter.js";
+import { finalizeProgression } from "./progression.js";
 import { rollInt, withRng } from "./rng.js";
 import type { GameState } from "./types.js";
 import { buildWaveCombat, rollLoot, startWave, survivorDps } from "./waves.js";
+import { zombieKindForKill } from "./zombieKinds.js";
 import {
   aggregateCoreInboundMultiplier,
   engineerGeneratorSkillMultiplier,
@@ -34,7 +43,10 @@ import {
 
 function grantCurrency(state: GameState, amount: number): GameState {
   if (amount <= 0) return state;
-  const mult = rebornIncomeMultiplier(state.rebornCount) * perimeterCurrencyIncomeMult(state);
+  const mult =
+    rebornIncomeMultiplier(state.rebornCount) *
+    perimeterCurrencyIncomeMult(state) *
+    companionCurrencyIncomeMult(state);
   const gained = Math.floor(amount * mult);
   return {
     ...state,
@@ -45,9 +57,13 @@ function grantCurrency(state: GameState, amount: number): GameState {
 
 function regenSurvivors(state: GameState): GameState {
   if (state.combat) return state;
+  const regenMult = companionRegenMult(state);
   const survivors = state.survivors.map((s) => {
     const cap = Math.floor(s.maxHp * survivorSkillMaxHpMultiplier(s));
-    const heal = Math.max(1, Math.floor(cap * 0.002 * survivorIdleRegenMultiplier(s)));
+    const heal = Math.max(
+      1,
+      Math.floor(cap * 0.002 * survivorIdleRegenMultiplier(s) * regenMult),
+    );
     return { ...s, hp: Math.min(cap, s.hp + heal) };
   });
   return { ...state, survivors };
@@ -84,18 +100,36 @@ export function simTick(state: GameState): GameState {
   while (combat.zombieHp <= 0 && combat.zombiesRemaining > 0) {
     combat.zombiesRemaining -= 1;
     combat.zombieHp += buildWaveCombat(encounterWave).zombieHp;
+    const spawnIndex = combat.zombiesMax - combat.zombiesRemaining - 1;
+    const kind = zombieKindForKill({
+      encounterWave,
+      isBoss: combat.isBoss,
+      zombiesMax: combat.zombiesMax,
+      spawnIndex,
+    });
+    const prevK = s.lifetimeKillsByKind[kind] ?? 0;
+    const lifeKills = { ...s.lifetimeKillsByKind, [kind]: prevK + 1 };
+
     const killPts = 2 + Math.floor(s.wave * 0.5);
     const killBonus = s.survivors.reduce((acc, sv) => acc + survivorKillCurrencySkillBonus(sv), 0);
     const killCurrencyBase = Math.floor(killPts * (1 + killBonus));
     const scrapExtra = partyScrapBonusPerKill(s);
-    s = grantCurrency(
-      {
-        ...s,
-        totalKills: s.totalKills + 1,
-        scrap: s.scrap + 1 + scrapExtra,
+    const companionScrap = companionScrapPerKill(s);
+
+    combat = { ...combat, killsThisWave: combat.killsThisWave + 1 };
+    s = {
+      ...s,
+      totalKills: s.totalKills + 1,
+      scrap: s.scrap + 1 + scrapExtra + companionScrap,
+      lifetimeKillsByKind: lifeKills,
+      meta: {
+        ...s.meta,
+        lifetimeTotalKills: s.meta.lifetimeTotalKills + 1,
       },
-      killCurrencyBase,
-    );
+      combat,
+    };
+    s = grantCurrency(s, killCurrencyBase);
+
     const loot = rollLoot(s);
     s = loot.state;
     if (loot.item) s = { ...s, inventory: [...s.inventory, loot.item] };
@@ -133,20 +167,34 @@ export function simTick(state: GameState): GameState {
   }
 
   if (combat.zombiesRemaining <= 0 && combat.zombieHp <= 0) {
+    const clearedStageKey = s.currentStageKey;
+    const bossClear = campaignStageIsBoss(clearedStageKey);
     const { currentStageKey, campaignHighestClearedKey } = advanceCampaignAfterStageClear(
       s.currentStageKey,
       s.campaignHighestClearedKey,
     );
     const wave = campaignWaveNumberFromStageKey(currentStageKey);
-    return { ...s, combat: null, currentStageKey, campaignHighestClearedKey, wave };
+    let next: GameState = {
+      ...s,
+      combat: null,
+      currentStageKey,
+      campaignHighestClearedKey,
+      wave,
+      meta: {
+        ...s.meta,
+        lifetimeWavesCleared: s.meta.lifetimeWavesCleared + 1,
+        lifetimeBossClears: s.meta.lifetimeBossClears + (bossClear ? 1 : 0),
+      },
+    };
+    next = finalizeProgression(next);
+    return next;
   }
 
   const inbound = combat.zombieDamage / TICKS_PER_SECOND;
-  const coreMit = perimeterCoreMitigationMult(s);
+  const coreMit = perimeterCoreMitigationMult(s) * companionCoreMitigationMult(s);
   const coreSkillMult = aggregateCoreInboundMultiplier(s.survivors);
   const baseCoreHp =
-    s.baseCoreHp -
-    inbound * 0.35 * (coreMit > 0 ? 1 / coreMit : 1) * coreSkillMult;
+    s.baseCoreHp - inbound * 0.35 * (coreMit > 0 ? 1 / coreMit : 1) * coreSkillMult;
   const nSurv = Math.max(1, s.survivors.length);
   const survivorShare = (inbound * 0.15) / nSurv;
   const survivors = s.survivors.map((sv) => ({

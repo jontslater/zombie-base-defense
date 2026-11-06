@@ -14,6 +14,14 @@
     { "key": "wall", "file": "sprites/wall.png" },
     { "key": "turret", "file": "sprites/turret.png" },
     { "key": "projectile", "file": "sprites/projectile.png" },
-    { "key": "weapon_icon", "file": "sprites/weapon_icon.png" }
+    { "key": "weapon_icon", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_dog", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_drone", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_mutt", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_crow", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_cat", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_badger", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_parrot", "file": "sprites/weapon_icon.png" },
+    { "key": "companion_raven", "file": "sprites/weapon_icon.png" }
   ]
 }

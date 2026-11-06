@@ -1,5 +1,7 @@
 import {
+  ACHIEVEMENT_IDS,
   BASE_UPGRADE_IDS,
+  COMPANION_IDS,
   INITIAL_CURRENCY,
   MATERIAL_IDS,
   SAVE_VERSION,
@@ -12,12 +14,15 @@ import {
 import { clampGem, sanitizeGearItem } from "./gearModel.js";
 import { normalizeGameState } from "./normalize.js";
 import type { GameState, SaveEnvelope } from "./types.js";
+import { defaultEquippedCompanion } from "./achievements.js";
+import { finalizeProgression } from "./progression.js";
 import {
   SURVIVOR_ROLE_IDS,
   SKILL_NODE_IDS,
   type SkillNodeId,
   type SurvivorRoleId,
 } from "./survivorRoles.js";
+import { ZOMBIE_KIND_IDS, emptyZombieKillsByKind } from "./zombieKinds.js";
 
 function emptyMaterials(): GameState["materials"] {
   return Object.fromEntries(MATERIAL_IDS.map((id) => [id, 0])) as GameState["materials"];
@@ -37,6 +42,8 @@ function migrateGearToV9(state: GameState): void {
 }
 
 export function createInitialState(seed = 12345): GameState {
+  const emptyUnlocked: GameState["companionsUnlocked"] = {};
+  const emptyAch: GameState["achievementsUnlocked"] = {};
   return {
     tick: 0,
     wave: 1,
@@ -48,6 +55,21 @@ export function createInitialState(seed = 12345): GameState {
     materials: emptyMaterials(),
     baseCoreHp: 200,
     baseCoreMaxHp: 200,
+    meta: {
+      lifetimeTotalKills: 0,
+      lifetimeWavesCleared: 0,
+      lifetimeBossClears: 0,
+      lifetimeWorkbenchEnhances: 0,
+      lifetimeWorkbenchRerolls: 0,
+      lifetimeSalvages: 0,
+      lifetimeSynthesisCombines: 0,
+      lifetimeAlchemyForges: 0,
+      offlineTicksApplied: 0,
+    },
+    lifetimeKillsByKind: emptyZombieKillsByKind(),
+    companionsUnlocked: emptyUnlocked,
+    equippedCompanionId: null,
+    achievementsUnlocked: emptyAch,
     perimeterUnlocked: {},
     upgrades: {
       wall: 0,
@@ -199,6 +221,8 @@ function migrateSurvivorsToRoles(state: GameState): void {
  * (e.g. campaign grid at v5) still run. Structural coercion for partial JSON is v6+.
  * v8: survivor roles + per-role ranked skill trees (replaces flat boolean lattice).
  * v9: gear sockets, gems, affix lines; `gemInventory` on save state.
+ * v10: offline raid rewards + `gems` wallet.
+ * v11: companions, comms milestones, zombie-kind kill tallies.
  */
 function migrateSave(env: SaveEnvelope): void {
   const prevVersion = env.version;
@@ -283,6 +307,103 @@ function migrateSave(env: SaveEnvelope): void {
   }
   if (env.state.gems === undefined || env.state.gems === null) {
     env.state.gems = 0;
+  }
+
+  if (prevVersion < 11) {
+    if (!env.state.lifetimeKillsByKind) env.state.lifetimeKillsByKind = emptyZombieKillsByKind();
+    for (const k of ZOMBIE_KIND_IDS) {
+      if (env.state.lifetimeKillsByKind[k] === undefined) env.state.lifetimeKillsByKind[k] = 0;
+    }
+    if (!env.state.meta) {
+      env.state.meta = {
+        lifetimeTotalKills: env.state.totalKills ?? 0,
+        lifetimeWavesCleared: 0,
+        lifetimeBossClears: 0,
+        lifetimeWorkbenchEnhances: 0,
+        lifetimeWorkbenchRerolls: 0,
+        lifetimeSalvages: 0,
+        lifetimeSynthesisCombines: 0,
+        lifetimeAlchemyForges: 0,
+        offlineTicksApplied: 0,
+      };
+    }
+    const m = env.state.meta;
+    if (m.lifetimeTotalKills === undefined) {
+      m.lifetimeTotalKills = Math.max(0, Math.floor(env.state.totalKills ?? 0));
+    }
+    for (const key of [
+      "lifetimeWavesCleared",
+      "lifetimeBossClears",
+      "lifetimeWorkbenchEnhances",
+      "lifetimeWorkbenchRerolls",
+      "lifetimeSalvages",
+      "lifetimeSynthesisCombines",
+      "lifetimeAlchemyForges",
+      "offlineTicksApplied",
+    ] as const) {
+      if (m[key] === undefined) m[key] = 0;
+    }
+    if (!env.state.companionsUnlocked) env.state.companionsUnlocked = {};
+    if (!env.state.achievementsUnlocked) env.state.achievementsUnlocked = {};
+    for (const id of COMPANION_IDS) {
+      if (env.state.companionsUnlocked[id]) continue;
+      delete env.state.companionsUnlocked[id];
+    }
+    for (const id of ACHIEVEMENT_IDS) {
+      if (env.state.achievementsUnlocked[id]) continue;
+      delete env.state.achievementsUnlocked[id];
+    }
+    if (env.state.equippedCompanionId === undefined) {
+      env.state.equippedCompanionId = defaultEquippedCompanion(env.state);
+    }
+    if (env.state.combat) {
+      if (env.state.combat.killsThisWave === undefined) env.state.combat.killsThisWave = 0;
+      if (env.state.combat.wasBossWave === undefined) {
+        env.state.combat.wasBossWave = env.state.combat.isBoss;
+      }
+    }
+    env.state = finalizeProgression(env.state);
+  }
+
+  const st = env.state;
+  if (!st.meta) {
+    st.meta = {
+      lifetimeTotalKills: Math.max(0, Math.floor(st.totalKills ?? 0)),
+      lifetimeWavesCleared: 0,
+      lifetimeBossClears: 0,
+      lifetimeWorkbenchEnhances: 0,
+      lifetimeWorkbenchRerolls: 0,
+      lifetimeSalvages: 0,
+      lifetimeSynthesisCombines: 0,
+      lifetimeAlchemyForges: 0,
+      offlineTicksApplied: 0,
+    };
+  }
+  if (st.meta.lifetimeTotalKills === undefined) {
+    st.meta.lifetimeTotalKills = Math.max(0, Math.floor(st.totalKills ?? 0));
+  }
+  for (const key of [
+    "lifetimeWavesCleared",
+    "lifetimeBossClears",
+    "lifetimeWorkbenchEnhances",
+    "lifetimeWorkbenchRerolls",
+    "lifetimeSalvages",
+    "lifetimeSynthesisCombines",
+    "lifetimeAlchemyForges",
+    "offlineTicksApplied",
+  ] as const) {
+    if (st.meta[key] === undefined) st.meta[key] = 0;
+  }
+  if (!st.lifetimeKillsByKind) st.lifetimeKillsByKind = emptyZombieKillsByKind();
+  for (const k of ZOMBIE_KIND_IDS) {
+    if (st.lifetimeKillsByKind[k] === undefined) st.lifetimeKillsByKind[k] = 0;
+  }
+  if (!st.companionsUnlocked) st.companionsUnlocked = {};
+  if (!st.achievementsUnlocked) st.achievementsUnlocked = {};
+  if (st.equippedCompanionId === undefined) st.equippedCompanionId = defaultEquippedCompanion(st);
+  if (st.combat) {
+    if (st.combat.killsThisWave === undefined) st.combat.killsThisWave = 0;
+    if (st.combat.wasBossWave === undefined) st.combat.wasBossWave = st.combat.isBoss;
   }
 }
 

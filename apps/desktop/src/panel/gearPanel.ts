@@ -40,6 +40,8 @@ import {
 import type { GameRuntime, CommandInput } from "../game/runtime";
 import { gearPowerForSurvivor, gearStatDelta } from "../game/gearStats";
 import { appendSlotIcon } from "./gearIcons";
+import { mountProgressPanels, refreshProgressPanelRoot } from "./progressPanel";
+
 function formatGearBrief(item: GearItem): string {
   const aff =
     item.affixes.length > 0 ? ` · ${item.affixes.map((a) => `${a.id}+${a.value}`).join(", ")}` : "";
@@ -53,6 +55,7 @@ function formatGearBrief(item: GearItem): string {
 export type PanelActions = {
   applyCommand: (cmd: CommandInput) => void;
   selectSurvivor: (survivorId: string) => void;
+  onAchievementsUnlocked?: (titles: string[]) => void;
 };
 
 export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime, actions: PanelActions): void {
@@ -62,17 +65,23 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
       <button type="button" data-subtab="skills">Skills</button>
       <button type="button" data-subtab="workbench">Workbench</button>
       <button type="button" data-subtab="perimeter">Perimeter</button>
+      <button type="button" data-subtab="companions">Companions</button>
+      <button type="button" data-subtab="comms">Comms</button>
     </div>
     <div id="subtab-gear" class="subtab-panel"></div>
     <div id="subtab-skills" class="subtab-panel hidden"></div>
     <div id="subtab-workbench" class="subtab-panel hidden"></div>
     <div id="subtab-perimeter" class="subtab-panel hidden"></div>
+    <div id="subtab-companions" class="subtab-panel hidden"></div>
+    <div id="subtab-comms" class="subtab-panel hidden"></div>
   `;
 
   const gearEl = root.querySelector("#subtab-gear") as HTMLElement;
   const skillsEl = root.querySelector("#subtab-skills") as HTMLElement;
   const benchEl = root.querySelector("#subtab-workbench") as HTMLElement;
   const perimeterEl = root.querySelector("#subtab-perimeter") as HTMLElement;
+  const companionsEl = root.querySelector("#subtab-companions") as HTMLElement;
+  const commsEl = root.querySelector("#subtab-comms") as HTMLElement;
 
   root.querySelectorAll<HTMLButtonElement>("[data-subtab]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -83,6 +92,8 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
       skillsEl.classList.toggle("hidden", tab !== "skills");
       benchEl.classList.toggle("hidden", tab !== "workbench");
       perimeterEl.classList.toggle("hidden", tab !== "perimeter");
+      companionsEl.classList.toggle("hidden", tab !== "companions");
+      commsEl.classList.toggle("hidden", tab !== "comms");
     });
   });
 
@@ -109,8 +120,22 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
     renderPerimeterTab(perimeterEl, rt, actions);
   };
 
-  (root as HTMLElement & { refreshGearPanel?: () => void }).refreshGearPanel = render;
-  render();
+  mountProgressPanels(
+    companionsEl,
+    commsEl,
+    getRuntime,
+    { applyCommand: actions.applyCommand },
+    (ids) => actions.onAchievementsUnlocked?.(ids),
+  );
+
+  const gearRootRef = root as HTMLElement & { refreshGearPanel?: () => void };
+  gearRootRef.refreshGearPanel = () => {
+    render();
+    refreshProgressPanelRoot(companionsEl);
+    refreshProgressPanelRoot(commsEl);
+  };
+  const firstRefresh = gearRootRef.refreshGearPanel;
+  if (firstRefresh) firstRefresh();
 }
 
 export function refreshGearPanelRoot(root: HTMLElement | null): void {

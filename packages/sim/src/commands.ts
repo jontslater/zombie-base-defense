@@ -10,6 +10,7 @@ import {
   ALCHEMY_FORGE_MATERIALS,
   ALCHEMY_FORGE_SCRAP,
   BASE_UPGRADE_IDS,
+  COMPANION_IDS,
   GEM_COMBINE_INPUT_COUNT,
   GEAR_SLOTS,
   RARITIES,
@@ -24,6 +25,7 @@ import {
   REBORN_MIN_WAVE,
   rebornStartingCurrency,
   upgradeCostAtLevel,
+  type CompanionId,
   type PerimeterNodeId,
   type Rarity,
 } from "./constants.js";
@@ -38,6 +40,8 @@ import {
 import { makeGearItem, makeGemItem } from "./gearFactory.js";
 import { maxSocketsForRarity, sanitizeGearItem } from "./gearModel.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
+import { defaultEquippedCompanion } from "./achievements.js";
+import { finalizeProgression } from "./progression.js";
 import { createInitialState } from "./save.js";
 import { perimeterSecondForgeUnlocked, tryBuyPerimeterNode } from "./perimeter.js";
 import { startWave } from "./waves.js";
@@ -179,6 +183,11 @@ export type UnsocketGemCommand = CommandBase & {
   inventoryGearIndex?: number;
 };
 
+export type SetEquippedCompanionCommand = CommandBase & {
+  type: "SET_EQUIPPED_COMPANION";
+  companionId: CompanionId | null;
+};
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -201,7 +210,8 @@ export type GameCommand =
   | SocketForgeCommand
   | GemCombineCommand
   | SocketGemCommand
-  | UnsocketGemCommand;
+  | UnsocketGemCommand
+  | SetEquippedCompanionCommand;
 
 /** @deprecated Prefer `upgradeCostAtLevel` from constants. */
 export function upgradeCost(level: number): number {
@@ -218,7 +228,7 @@ export function applyReborn(state: GameState): GameState {
   if (progressWave < REBORN_MIN_WAVE) return state;
   const fresh = createInitialState(state.rngState);
   const payout = rebornStartingCurrency(progressWave);
-  return {
+  let next: GameState = {
     ...fresh,
     rebornCount: state.rebornCount + 1,
     lifetimeCurrencyEarned: state.lifetimeCurrencyEarned + payout,
@@ -226,7 +236,17 @@ export function applyReborn(state: GameState): GameState {
     gems: state.gems,
     gemInventory: [...state.gemInventory],
     perimeterUnlocked: { ...state.perimeterUnlocked },
+    companionsUnlocked: { ...state.companionsUnlocked },
+    achievementsUnlocked: { ...state.achievementsUnlocked },
+    equippedCompanionId:
+      state.equippedCompanionId !== null && state.equippedCompanionId !== undefined
+        ? state.equippedCompanionId
+        : defaultEquippedCompanion(state),
+    lifetimeKillsByKind: { ...state.lifetimeKillsByKind },
+    meta: { ...state.meta },
   };
+  next = finalizeProgression(next);
+  return next;
 }
 
 function applySetCampaignStage(
@@ -299,7 +319,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       const next = { ...state.upgrades, [cmd.upgradeId]: level + 1 };
       let baseCoreMaxHp = state.baseCoreMaxHp;
       if (cmd.upgradeId === "wall") baseCoreMaxHp += 50;
-      return {
+      return finalizeProgression({
         ...state,
         currency: state.currency - cost,
         upgrades: next,
@@ -308,7 +328,7 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
           state.baseCoreHp + (cmd.upgradeId === "wall" ? 50 : 0),
           baseCoreMaxHp,
         ),
-      };
+      });
     }
     case "EQUIP_GEAR": {
       const rawItem = state.inventory[cmd.inventoryIndex];
@@ -406,7 +426,13 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
           },
         };
       });
-      return { ...state, scrap: state.scrap - WORKBENCH_ENHANCE_SCRAP, inventory, survivors };
+      return finalizeProgression({
+        ...state,
+        scrap: state.scrap - WORKBENCH_ENHANCE_SCRAP,
+        inventory,
+        survivors,
+        meta: { ...state.meta, lifetimeWorkbenchEnhances: state.meta.lifetimeWorkbenchEnhances + 1 },
+      });
     }
     case "WORKBENCH_REROLL": {
       if (state.upgrades.workbench <= 0) return state;
@@ -446,14 +472,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       const gemsReturned = rerollPayload?.gemsReturned ?? [];
       if (!rerolled) return state;
       const inventory = state.inventory.map((it, i) => (i === cmd.inventoryIndex ? rerolled : it));
-      return {
+      return finalizeProgression({
         ...state,
         scrap: state.scrap - WORKBENCH_REROLL_SCRAP,
         currency: state.currency - WORKBENCH_REROLL_CURRENCY,
         inventory,
         gemInventory: [...state.gemInventory, ...gemsReturned],
         rngState,
-      };
+        meta: { ...state.meta, lifetimeWorkbenchRerolls: state.meta.lifetimeWorkbenchRerolls + 1 },
+      });
     }
     case "SALVAGE_GEAR": {
       if (state.upgrades.workbench <= 0) return state;
@@ -462,12 +489,13 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       const yieldMap = salvageYieldForGear(item);
       const inventory = state.inventory.filter((_, i) => i !== cmd.inventoryIndex);
       const gemsFromSockets = item.sockets.filter((g): g is GemItem => g !== null);
-      return {
+      return finalizeProgression({
         ...state,
         inventory,
         materials: addMaterials(state, yieldMap),
         gemInventory: [...state.gemInventory, ...gemsFromSockets],
-      };
+        meta: { ...state.meta, lifetimeSalvages: state.meta.lifetimeSalvages + 1 },
+      });
     }
     case "SYNTHESIS_COMBINE": {
       if (state.upgrades.workbench <= 0) return state;
@@ -516,13 +544,14 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       });
       if (!newItem) return state;
 
-      return {
+      return finalizeProgression({
         ...state,
         inventory: [...inventory, sanitizeGearItem(newItem)],
         gemInventory: [...state.gemInventory, ...gemsFromSockets],
         scrap: state.scrap - SYNTHESIS_SCRAP_COST,
         rngState,
-      };
+        meta: { ...state.meta, lifetimeSynthesisCombines: state.meta.lifetimeSynthesisCombines + 1 },
+      });
     }
     case "ALCHEMY_FORGE": {
       if (state.upgrades.workbench <= 0) return state;
@@ -555,14 +584,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       });
       if (!result) return state;
       const forged = sanitizeGearItem(result);
-      return {
+      return finalizeProgression({
         ...state,
         scrap: state.scrap - ALCHEMY_FORGE_SCRAP,
         currency: state.currency - forgeCurrencyCost,
         materials: subtractMaterials(state, ALCHEMY_FORGE_MATERIALS),
         inventory: [...state.inventory, forged],
         rngState,
-      };
+        meta: { ...state.meta, lifetimeAlchemyForges: state.meta.lifetimeAlchemyForges + 1 },
+      });
     }
     case "SOCKET_FORGE": {
       if (state.upgrades.workbench <= 0) return state;
@@ -690,7 +720,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
     }
     case "BUY_PERIMETER_NODE": {
       const result = tryBuyPerimeterNode(state, cmd.nodeId);
-      return result.ok ? result.state : state;
+      return result.ok ? finalizeProgression(result.state) : state;
+    }
+    case "SET_EQUIPPED_COMPANION": {
+      if (cmd.companionId === null) {
+        return { ...state, equippedCompanionId: null };
+      }
+      if (!COMPANION_IDS.includes(cmd.companionId)) return state;
+      if (!state.companionsUnlocked[cmd.companionId]) return state;
+      return { ...state, equippedCompanionId: cmd.companionId as CompanionId };
     }
   }
 }

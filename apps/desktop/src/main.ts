@@ -27,6 +27,7 @@ import {
 import { mountCampaignGrid, refreshCampaignGrid } from "./panel/campaignGrid";
 import { mountGearPanel, refreshGearPanelRoot } from "./panel/gearPanel";
 import { showRaidReportOverlay } from "./panel/raidReportOverlay";
+import { createToastHost, showAchievementToast } from "./panel/progressPanel";
 import { wirePanelUiSounds } from "./panel/uiSounds";
 import type { GameStateDelta } from "@zbd/sim";
 
@@ -34,6 +35,7 @@ let runtime: GameRuntime;
 let phaserGame: Phaser.Game;
 let relay: RelayClient | null = null;
 const coopSession = createCoopSession();
+const toastHost = createToastHost();
 
 function demoQueryMode(): "combat" | "boss" | null {
   if (import.meta.env.VITE_DEMO === "1") return "combat";
@@ -119,6 +121,7 @@ function panelActions() {
       runtime = { ...runtime, assignedSurvivorId: survivorId };
       refreshPanel();
     },
+    onAchievementsUnlocked: (titles: string[]) => showAchievementToast(toastHost, titles),
   };
 }
 

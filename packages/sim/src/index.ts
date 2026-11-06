@@ -18,3 +18,7 @@ export * from "./survivorRoles.js";
 export * from "./gearModel.js";
 export * from "./gearFactory.js";
 export * from "./gearBonuses.js";
+export * from "./zombieKinds.js";
+export * from "./companions.js";
+export * from "./achievements.js";
+export * from "./progression.js";

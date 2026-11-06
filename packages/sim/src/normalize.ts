@@ -1,6 +1,8 @@
 import {
   AFFIX_IDS,
+  ACHIEVEMENT_IDS,
   BASE_UPGRADE_IDS,
+  COMPANION_IDS,
   GEAR_SLOTS,
   GEM_KINDS,
   INITIAL_CURRENCY,
@@ -9,8 +11,10 @@ import {
   RARITIES,
   STANCES,
   TARGET_MODES,
+  type AchievementId,
   type BaseUpgradeId,
   type AffixId,
+  type CompanionId,
   type GearSlot,
   type GemKind,
   type MaterialId,
@@ -32,6 +36,7 @@ import type {
   SurvivorState,
   WaveCombat,
 } from "./types.js";
+import { ZOMBIE_KIND_IDS, type ZombieKindId } from "./zombieKinds.js";
 
 function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -246,13 +251,19 @@ export function normalizeCombat(raw: unknown): WaveCombat | null {
   const o = raw as Record<string, unknown>;
   const zombiesMax = Math.max(1, Math.floor(num(o.zombiesMax, 1)));
   const zombiesRemaining = Math.max(0, Math.floor(num(o.zombiesRemaining, zombiesMax)));
+  const isBoss = Boolean(o.isBoss);
+  const killsThisWave =
+    o.killsThisWave !== undefined ? Math.max(0, Math.floor(num(o.killsThisWave, 0))) : 0;
+  const wasBossWave = o.wasBossWave !== undefined ? Boolean(o.wasBossWave) : isBoss;
   return {
     zombiesRemaining,
     zombiesMax,
     zombieHp: Math.max(1, num(o.zombieHp, 25)),
     zombieDamage: Math.max(0, num(o.zombieDamage, 4)),
-    isBoss: Boolean(o.isBoss),
+    isBoss,
     bossHpMultiplier: Math.max(1, num(o.bossHpMultiplier, 1)),
+    killsThisWave,
+    wasBossWave,
   };
 }
 
@@ -309,6 +320,75 @@ export function normalizeGameState(raw: unknown): GameState {
 
   const perimeterUnlocked = normalizePerimeterUnlocked(o.perimeterUnlocked);
 
+  const totalKills = Math.max(0, Math.floor(num(o.totalKills, 0)));
+
+  let lifetimeKillsByKind = emptyZombieKillsByKind();
+  const lkb = o.lifetimeKillsByKind;
+  if (lkb && typeof lkb === "object") {
+    for (const id of ZOMBIE_KIND_IDS) {
+      const v = (lkb as Record<string, unknown>)[id];
+      if (typeof v === "number" && Number.isFinite(v)) {
+        lifetimeKillsByKind[id as ZombieKindId] = Math.max(0, Math.floor(v));
+      }
+    }
+  }
+
+  const metaRaw = o.meta;
+  const meta: GameState["meta"] = {
+    lifetimeTotalKills: totalKills,
+    lifetimeWavesCleared: 0,
+    lifetimeBossClears: 0,
+    lifetimeWorkbenchEnhances: 0,
+    lifetimeWorkbenchRerolls: 0,
+    lifetimeSalvages: 0,
+    lifetimeSynthesisCombines: 0,
+    lifetimeAlchemyForges: 0,
+    offlineTicksApplied: 0,
+  };
+  if (metaRaw && typeof metaRaw === "object") {
+    const mr = metaRaw as Record<string, unknown>;
+    for (const key of [
+      "lifetimeTotalKills",
+      "lifetimeWavesCleared",
+      "lifetimeBossClears",
+      "lifetimeWorkbenchEnhances",
+      "lifetimeWorkbenchRerolls",
+      "lifetimeSalvages",
+      "lifetimeSynthesisCombines",
+      "lifetimeAlchemyForges",
+      "offlineTicksApplied",
+    ] as const) {
+      if (mr[key] !== undefined) {
+        meta[key] = Math.max(0, Math.floor(num(mr[key], meta[key])));
+      }
+    }
+  }
+
+  const companionsUnlocked: GameState["companionsUnlocked"] = {};
+  const cu = o.companionsUnlocked;
+  if (cu && typeof cu === "object") {
+    for (const id of COMPANION_IDS) {
+      if ((cu as Record<string, unknown>)[id] === true) companionsUnlocked[id as CompanionId] = true;
+    }
+  }
+
+  const achievementsUnlocked: GameState["achievementsUnlocked"] = {};
+  const au = o.achievementsUnlocked;
+  if (au && typeof au === "object") {
+    for (const id of ACHIEVEMENT_IDS) {
+      if ((au as Record<string, unknown>)[id] === true) achievementsUnlocked[id as AchievementId] = true;
+    }
+  }
+
+  let equippedCompanionId: GameState["equippedCompanionId"] = null;
+  const ec = o.equippedCompanionId;
+  if (typeof ec === "string" && (COMPANION_IDS as readonly string[]).includes(ec)) {
+    equippedCompanionId = ec as CompanionId;
+  } else {
+    const first = COMPANION_IDS.find((id) => companionsUnlocked[id]);
+    equippedCompanionId = first ?? null;
+  }
+
   return {
     tick: Math.max(0, Math.floor(num(o.tick, 0))),
     wave: waveN,
@@ -330,5 +410,14 @@ export function normalizeGameState(raw: unknown): GameState {
     rebornCount,
     lifetimeCurrencyEarned,
     rngState: num(o.rngState, 1) >>> 0,
+    lifetimeKillsByKind,
+    meta,
+    companionsUnlocked,
+    equippedCompanionId,
+    achievementsUnlocked,
   };
+}
+
+function emptyZombieKillsByKind(): import("./types.js").LifetimeKillsByKind {
+  return Object.fromEntries(ZOMBIE_KIND_IDS.map((k) => [k, 0])) as Record<ZombieKindId, number>;
 }

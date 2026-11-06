@@ -31,7 +31,20 @@ describe("Reborn prestige", () => {
 
   it("no-ops during combat", () => {
     let state = createInitialState(9);
-    state = { ...state, wave: 10, combat: { zombiesRemaining: 1, zombiesMax: 1, zombieHp: 10, zombieDamage: 1, isBoss: false, bossHpMultiplier: 1 } };
+    state = {
+      ...state,
+      wave: 10,
+      combat: {
+        zombiesRemaining: 1,
+        zombiesMax: 1,
+        zombieHp: 10,
+        zombieDamage: 1,
+        isBoss: false,
+        bossHpMultiplier: 1,
+        killsThisWave: 0,
+        wasBossWave: false,
+      },
+    };
     expect(applyReborn(state)).toEqual(state);
   });
 
