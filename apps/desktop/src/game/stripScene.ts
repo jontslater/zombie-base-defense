@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { stripCampaignTag } from "@zbd/sim";
 import type { GameRuntime } from "./runtime";
 
 const SURVIVOR_SCALE = 0.52;
@@ -176,8 +177,11 @@ export class StripScene extends Phaser.Scene {
     const combatText = combat
       ? ` | Z:${combat.zombiesRemaining}${combat.isBoss ? " BOSS" : ""}`
       : " | idle";
+    const camp = stripCampaignTag(s.currentStageKey);
     this.label.setText(
-      `W${s.wave} | ${s.currency}c | Core ${Math.floor(s.baseCoreHp)}/${s.baseCoreMaxHp}${combatText}`,
+      `${camp} | w${s.wave} | ${s.currency}c | Core ${Math.floor(s.baseCoreHp)}/${
+        s.baseCoreMaxHp
+      }${combatText}`,
     );
   }
 }

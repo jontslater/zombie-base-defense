@@ -1,4 +1,11 @@
 import {
+  CAMPAIGN_NUM_ACTS,
+  CAMPAIGN_NUM_DIFFICULTY_TIERS,
+  CAMPAIGN_STAGES_PER_ACT,
+  campaignWaveNumberFromStageKey,
+  stageKeyFromParts,
+} from "./campaign.js";
+import {
   ALCHEMY_FORGE_CURRENCY,
   ALCHEMY_FORGE_MATERIALS,
   ALCHEMY_FORGE_SCRAP,
@@ -110,6 +117,16 @@ export type AlchemyForgeCommand = CommandBase & {
   slot: GearSlot;
 };
 
+export type SetCampaignStageCommand = CommandBase & {
+  type: "SET_CAMPAIGN_STAGE";
+  /** Difficulty tier 0..3 */
+  tier: number;
+  /** Act 0..2 */
+  act: number;
+  /** Stage 1..10 */
+  stage: number;
+};
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -125,7 +142,8 @@ export type GameCommand =
   | RebornCommand
   | SalvageGearCommand
   | SynthesisCombineCommand
-  | AlchemyForgeCommand;
+  | AlchemyForgeCommand
+  | SetCampaignStageCommand;
 
 /** @deprecated Prefer `upgradeCostAtLevel` from constants. */
 export function upgradeCost(level: number): number {
@@ -134,9 +152,14 @@ export function upgradeCost(level: number): number {
 
 export function applyReborn(state: GameState): GameState {
   if (state.combat !== null) return state;
-  if (state.wave < REBORN_MIN_WAVE) return state;
+  /** Best encounter wave reached this run (core-fall can lower `wave` while `campaignHighestClearedKey` stays ahead). */
+  const progressWave =
+    state.campaignHighestClearedKey < 0
+      ? state.wave
+      : Math.max(state.wave, campaignWaveNumberFromStageKey(state.campaignHighestClearedKey));
+  if (progressWave < REBORN_MIN_WAVE) return state;
   const fresh = createInitialState(state.rngState);
-  const payout = rebornStartingCurrency(state.wave);
+  const payout = rebornStartingCurrency(progressWave);
   return {
     ...fresh,
     rebornCount: state.rebornCount + 1,
@@ -145,10 +168,37 @@ export function applyReborn(state: GameState): GameState {
   };
 }
 
+function applySetCampaignStage(
+  state: GameState,
+  tier: number,
+  act: number,
+  stage: number,
+): GameState {
+  if (state.combat !== null) return state;
+  const high = state.campaignHighestClearedKey;
+  if (high < 0) return state;
+
+  if (!Number.isFinite(tier) || !Number.isFinite(act) || !Number.isFinite(stage)) return state;
+  const t = Math.floor(tier);
+  const a = Math.floor(act);
+  const st = Math.floor(stage);
+  if (t < 0 || t >= CAMPAIGN_NUM_DIFFICULTY_TIERS) return state;
+  if (a < 0 || a >= CAMPAIGN_NUM_ACTS) return state;
+  if (st < 1 || st > CAMPAIGN_STAGES_PER_ACT) return state;
+
+  const key = stageKeyFromParts(t, a, st);
+  if (key > high) return state;
+
+  const wave = campaignWaveNumberFromStageKey(key);
+  return { ...state, currentStageKey: key, wave };
+}
+
 export function applyCommand(state: GameState, cmd: GameCommand): GameState {
   switch (cmd.type) {
     case "REBORN":
       return applyReborn(state);
+    case "SET_CAMPAIGN_STAGE":
+      return applySetCampaignStage(state, cmd.tier, cmd.act, cmd.stage);
     case "TICK":
     case "START_WAVE":
       if (cmd.type === "START_WAVE") return startWave(state);
@@ -319,13 +369,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
         inventory.splice(removeAt, 1);
       }
 
-      const wave = state.wave;
+      const encounterWave = campaignWaveNumberFromStageKey(state.currentStageKey);
       const { result: newItem, rngState } = withRng(state, (rng) => {
         const slotRoll = rollInt(rng, 0, 3);
         const slots = ["weapon", "armor", "tool", "trinket"] as const;
         const slot = slots[slotRoll]!;
         const rarityIndex = RARITIES.indexOf(nextRarity);
-        const power = Math.floor((5 + wave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4));
+        const power = Math.floor(
+          (5 + encounterWave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4),
+        );
         const id = `syn-${state.tick}-${rollInt(rng, 1000, 9999)}`;
         return { id, slot, rarity: nextRarity, power: Math.max(1, power) } satisfies GearItem;
       });
@@ -347,11 +399,13 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       ) {
         return state;
       }
-      const wave = state.wave;
+      const encounterWave = campaignWaveNumberFromStageKey(state.currentStageKey);
       const { result, rngState } = withRng(state, (rng) => {
         const rarity = pickWeighted(rng, RARITY_WEIGHTS) as Rarity;
         const rarityIndex = RARITIES.indexOf(rarity);
-        const power = Math.floor((5 + wave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4));
+        const power = Math.floor(
+          (5 + encounterWave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4),
+        );
         const id = `forge-${state.tick}-${rollInt(rng, 1000, 9999)}`;
         return {
           id,

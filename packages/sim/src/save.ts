@@ -4,6 +4,11 @@ import {
   MATERIAL_IDS,
   SAVE_VERSION,
 } from "./constants.js";
+import {
+  CAMPAIGN_LAST_STAGE_KEY,
+  campaignWaveNumberFromStageKey,
+  stageKeyFromCampaignWave,
+} from "./campaign.js";
 import type { GameState, SaveEnvelope } from "./types.js";
 
 function emptyMaterials(): GameState["materials"] {
@@ -14,6 +19,8 @@ export function createInitialState(seed = 12345): GameState {
   return {
     tick: 0,
     wave: 1,
+    currentStageKey: 0,
+    campaignHighestClearedKey: -1,
     currency: INITIAL_CURRENCY,
     scrap: 0,
     materials: emptyMaterials(),
@@ -82,6 +89,7 @@ export function parseSave(json: string): SaveEnvelope {
 }
 
 function migrateSave(env: SaveEnvelope): void {
+  const prevVersion = env.version;
   if (env.version < SAVE_VERSION) {
     env.version = SAVE_VERSION;
   }
@@ -105,6 +113,44 @@ function migrateSave(env: SaveEnvelope): void {
     if (s.controllerId === undefined) s.controllerId = null;
     if (s.aiControlUntilTick === undefined) s.aiControlUntilTick = null;
   }
+
+  // Campaign grid (SAVE_VERSION 5+): clamp legacy infinite ladder into 1–120 encounter waves.
+  if (prevVersion < 5) {
+    const w = env.state.wave;
+    const clampedWave = Math.max(1, Math.min(CAMPAIGN_LAST_STAGE_KEY + 1, w));
+    env.state.wave = clampedWave;
+    if (env.state.currentStageKey === undefined) {
+      env.state.currentStageKey = stageKeyFromCampaignWave(clampedWave);
+    }
+    if (env.state.campaignHighestClearedKey === undefined) {
+      env.state.campaignHighestClearedKey =
+        clampedWave >= 2 ? stageKeyFromCampaignWave(clampedWave - 1) : -1;
+    }
+  }
+  if (env.state.currentStageKey === undefined) {
+    env.state.currentStageKey = stageKeyFromCampaignWave(
+      Math.min(env.state.wave, CAMPAIGN_LAST_STAGE_KEY + 1),
+    );
+  }
+  if (env.state.campaignHighestClearedKey === undefined) {
+    env.state.campaignHighestClearedKey = -1;
+  }
+  env.state.currentStageKey = Math.max(
+    0,
+    Math.min(CAMPAIGN_LAST_STAGE_KEY, env.state.currentStageKey),
+  );
+  env.state.campaignHighestClearedKey = Math.max(
+    -1,
+    Math.min(CAMPAIGN_LAST_STAGE_KEY, env.state.campaignHighestClearedKey),
+  );
+
+  const wClamped = Math.max(1, Math.min(CAMPAIGN_LAST_STAGE_KEY + 1, env.state.wave));
+  env.state.wave = wClamped;
+  const waveFromKey = campaignWaveNumberFromStageKey(env.state.currentStageKey);
+  if (waveFromKey !== wClamped) {
+    env.state.currentStageKey = stageKeyFromCampaignWave(wClamped);
+  }
+  env.state.wave = campaignWaveNumberFromStageKey(env.state.currentStageKey);
 }
 
 export function saveToJson(state: GameState, savedAtMs: number): string {

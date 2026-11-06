@@ -1,5 +1,10 @@
 import { processAiGraceDepartures } from "./coop.js";
 import {
+  advanceCampaignAfterStageClear,
+  campaignWaveNumberFromStageKey,
+  stageKeyFromCampaignWave,
+} from "./campaign.js";
+import {
   TICKS_PER_SECOND,
   WAVE_PENALTY_ON_CORE_FALL,
   rebornIncomeMultiplier,
@@ -47,6 +52,7 @@ export function simTick(state: GameState): GameState {
     return s;
   }
 
+  const encounterWave = campaignWaveNumberFromStageKey(s.currentStageKey);
   const dps = survivorDps(s);
   const damageThisTick = dps / TICKS_PER_SECOND;
   let combat = { ...s.combat };
@@ -55,7 +61,7 @@ export function simTick(state: GameState): GameState {
 
   while (combat.zombieHp <= 0 && combat.zombiesRemaining > 0) {
     combat.zombiesRemaining -= 1;
-    combat.zombieHp += buildWaveCombat(s.wave).zombieHp;
+    combat.zombieHp += buildWaveCombat(encounterWave).zombieHp;
     const killCurrencyBase = 2 + Math.floor(s.wave * 0.5);
     s = grantCurrency(
       {
@@ -82,7 +88,12 @@ export function simTick(state: GameState): GameState {
   }
 
   if (combat.zombiesRemaining <= 0 && combat.zombieHp <= 0) {
-    return { ...s, combat: null, wave: s.wave + 1 };
+    const { currentStageKey, campaignHighestClearedKey } = advanceCampaignAfterStageClear(
+      s.currentStageKey,
+      s.campaignHighestClearedKey,
+    );
+    const wave = campaignWaveNumberFromStageKey(currentStageKey);
+    return { ...s, combat: null, currentStageKey, campaignHighestClearedKey, wave };
   }
 
   const inbound = combat.zombieDamage / TICKS_PER_SECOND;
@@ -97,6 +108,7 @@ export function simTick(state: GameState): GameState {
     return {
       ...s,
       wave: newWave,
+      currentStageKey: stageKeyFromCampaignWave(newWave),
       baseCoreHp: Math.floor(s.baseCoreMaxHp * 0.4),
       combat: null,
       survivors: survivors.map((sv) => ({

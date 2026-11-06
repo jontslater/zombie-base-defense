@@ -40,7 +40,19 @@ export type WaveCombat = {
 
 export type GameState = {
   tick: number;
+  /**
+   * Difficulty wave 1–120 for this encounter (mirrors TBH-style campaign linear index + 1).
+   * Prefer `currentStageKey` for act/stage UI; this stays aligned for scaling and legacy tests.
+   */
   wave: number;
+  /**
+   * Linear campaign stage 0–119 (4 tiers × 3 acts × 10 stages). Select/farm via panel command.
+   */
+  currentStageKey: number;
+  /**
+   * Highest linear stage cleared (−1 = none). Used for unlock/farm rules.
+   */
+  campaignHighestClearedKey: number;
   currency: number;
   scrap: number;
   /** Salvage materials from breaking down gear (crafting economy). */

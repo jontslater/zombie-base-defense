@@ -8,10 +8,10 @@ TBH’s design pattern (see `docs/TBH_FEATURE_AUDIT.md`): **thin always-on view 
 
 | Step | Intent | Code reality today |
 | --- | --- | --- |
-| **Waves** | Survive escalating waves; bosses every **10** waves (`BOSS_EVERY_N_WAVES`). | Implemented in `@zbd/sim` (`waves.ts`, `tick.ts`). |
+| **Waves / campaign** | Survive escalating encounters; **TBH-style grid** 4 tiers × 3 acts × 10 stages (boss on each act-10); farm cleared stages. Legacy `wave` is **encounter wave 1–120** for scaling. | Implemented: `campaign.ts`, `currentStageKey` / `campaignHighestClearedKey`, `SET_CAMPAIGN_STAGE`, strip + panel UI. Boss cadence uses stage-10 (`campaignStageIsBoss`). |
 | **Scrap / currency / materials** | Earn **currency** + **scrap** from combat; **salvage** gear into **materials**; spend on upgrades, workbench, **alchemy forge**, and **synthesis**. | Implemented (`tick.ts`, `commands.ts`, `workbenchMaterials.ts`). |
 | **Upgrade base & skills** | Wall/turret/generator/workbench + skill nodes + gear. | Implemented (`commands.ts`, `constants.ts`). |
-| **Harder waves** | Scaling via wave number in `buildWaveCombat`. | Implemented. |
+| **Harder waves** | Scaling via encounter wave in `buildWaveCombat` (from `currentStageKey`). Synthesis / alchemy forged power uses the same encounter wave. | Implemented. |
 | **Reborn** | Prestige reset with a lasting bonus meta-loop (TBH-style “Reborn”). | Implemented in `@zbd/sim`: `applyReborn`, `rebornCount`, tests in `reborn.test.ts`, balance knobs in `constants.ts`. |
 
 **Slice acceptance**: a player can run **waves → earn → upgrade → notice difficulty increase** in the **400×80** strip + panel, then **Reborn** and still have a reason to continue (stacking income/DPS bonuses from `rebornCount`).

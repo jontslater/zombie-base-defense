@@ -35,7 +35,7 @@ export const TICKS_PER_SECOND = 10;
 /** Max offline catch-up (8 hours). */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export const BOSS_EVERY_N_WAVES = 10;
 

@@ -8,10 +8,16 @@ import {
   SYNTHESIS_INPUT_COUNT,
   SYNTHESIS_SCRAP_COST,
 } from "./constants.js";
+import { stageKeyFromCampaignWave } from "./campaign.js";
 import { applyCommand, createInitialState, loadFromJson, saveToJson } from "./index.js";
 import type { GameCommand } from "./commands.js";
 import { diffGameState, applyGameStateDelta } from "./delta.js";
 import { salvageYieldForGear } from "./workbenchMaterials.js";
+
+function withEncounterWave(state: ReturnType<typeof createInitialState>, wave: number) {
+  const w = Math.max(1, Math.min(120, wave));
+  return { ...state, wave: w, currentStageKey: stageKeyFromCampaignWave(w) };
+}
 
 function baseCmd(): { id: string; playerId: string; issuedAtTick: number } {
   return { id: "test", playerId: "p", issuedAtTick: 0 };
@@ -58,7 +64,7 @@ describe("Synthesis (9 same rarity → next tier)", () => {
   it("consumes 9 items, scrap, and adds one item of higher rarity", () => {
     let state = withWorkbench(201, SYNTHESIS_SCRAP_COST + 5);
     const baseWave = 6;
-    state = { ...state, wave: baseWave };
+    state = withEncounterWave(state, baseWave);
     const items = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) => ({
       id: `c-${i}`,
       slot: "weapon" as const,
@@ -146,7 +152,7 @@ describe("Alchemy forge (material + currency sink)", () => {
     for (const id of MATERIAL_IDS) {
       mats[id] += ALCHEMY_FORGE_MATERIALS[id] ?? 0;
     }
-    state = { ...state, materials: mats, wave: 5 };
+    state = withEncounterWave({ ...state, materials: mats }, 5);
     const beforeInv = state.inventory.length;
     const beforeCur = state.currency;
     state = applyCommand(state, { ...baseCmd(), type: "ALCHEMY_FORGE", slot: "armor" } as GameCommand);

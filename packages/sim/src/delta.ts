@@ -3,6 +3,8 @@ import type { GameState, SurvivorState } from "./types.js";
 export type GameStateDelta = {
   tick: number;
   wave: number;
+  currentStageKey?: number;
+  campaignHighestClearedKey?: number;
   currency?: number;
   scrap?: number;
   materials?: GameState["materials"];
@@ -21,6 +23,8 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
   let changed = false;
 
   const fields: (keyof GameStateDelta)[] = [
+    "currentStageKey",
+    "campaignHighestClearedKey",
     "currency",
     "scrap",
     "materials",
@@ -66,6 +70,9 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
     ...state,
     tick: delta.tick,
     wave: delta.wave,
+    currentStageKey: delta.currentStageKey ?? state.currentStageKey,
+    campaignHighestClearedKey:
+      delta.campaignHighestClearedKey ?? state.campaignHighestClearedKey,
     currency: delta.currency ?? state.currency,
     scrap: delta.scrap ?? state.scrap,
     materials: delta.materials ?? state.materials,
