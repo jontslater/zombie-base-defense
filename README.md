@@ -63,7 +63,7 @@ Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench), `@zbd/relay
 | `packages/sim` | Deterministic tick sim, gear/skills/workbench commands, co-op helpers, deltas |
 | `apps/desktop` | Vite + Phaser 3 + Tauri shell |
 | `apps/relay` | Node WebSocket relay (`/health`, Railway-ready) |
-| `assets/` | CC0 placeholders + `ASSETS.md` |
+| `assets/` | Kenney CC0 sprites, UI, audio + `ASSETS.md` |
 
 ## Relay on Railway
 

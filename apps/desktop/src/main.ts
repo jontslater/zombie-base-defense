@@ -24,6 +24,7 @@ import {
   onRelayHello,
 } from "./coop/coopSession";
 import { mountGearPanel, refreshGearPanelRoot } from "./panel/gearPanel";
+import { wirePanelUiSounds } from "./panel/uiSounds";
 import type { GameStateDelta } from "@zbd/sim";
 
 let runtime: GameRuntime;
@@ -118,6 +119,7 @@ function wirePanel() {
   }
 
   mountGearPanel(document.getElementById("gear-panel-root")!, () => runtime, panelActions());
+  wirePanelUiSounds(panel);
 
   document.getElementById("strip-click-through")?.addEventListener("change", async (ev) => {
     const checked = (ev.target as HTMLInputElement).checked;
