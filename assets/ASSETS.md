@@ -26,7 +26,8 @@ Strip Phaser sprites are listed in **`sprite.manifest.json`** and packed to **`g
 
 | File / key | Source | Role |
 | --- | --- | --- |
-| `survivor*.png`, `survivor_alt*.png`, `survivor_melee*.png` | AI | Gunner, soldier, melee stance frames |
+| `survivor*.png`, `survivor_alt*.png`, `survivor_melee*.png` | AI | Legacy gunner, soldier, melee stance frames (unused by strip when per-role sprites exist) |
+| `survivor_<role>.png` (+ `_attack`, `_hurt`) | AI | Per TBH role strip frames (`brawler` … `warden`); see `assets/zombie-ai-roles.manifest.json` |
 | `shambler*` … `boss*` | AI | Per-kind zombie walk / attack / die |
 | `zombie.png` | AI | Legacy key (shambler walk) |
 | `base.png`, `wall.png`, `turret.png` | AI | Base core, walls, turrets |

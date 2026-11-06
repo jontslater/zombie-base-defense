@@ -2,18 +2,22 @@ import { describe, expect, it } from "vitest";
 import type { StripCombatSnapshot } from "./stripSnapshot.js";
 import { stripZombieKindAtSlot } from "./stripSnapshot.js";
 import { gemSpriteKeyForKind, stripSurvivorSpriteKey, stripZombieSpriteKey } from "./spriteKeys.js";
+import { SURVIVOR_ROLE_IDS } from "./survivorRoles.js";
 import { zombieKindForKill } from "./zombieKinds.js";
 
 describe("spriteKeys", () => {
-  it("maps brawler to melee atlas keys by phase", () => {
-    expect(stripSurvivorSpriteKey("brawler", 0, "idle")).toBe("survivor_melee");
-    expect(stripSurvivorSpriteKey("brawler", 1, "attack")).toBe("survivor_melee_attack");
-    expect(stripSurvivorSpriteKey("brawler", 0, "hurt")).toBe("survivor_melee_hurt");
+  it("maps each TBH role to survivor_<role> atlas keys by frame phase", () => {
+    for (const role of SURVIVOR_ROLE_IDS) {
+      const base = `survivor_${role}`;
+      expect(stripSurvivorSpriteKey(role, 0, "idle")).toBe(base);
+      expect(stripSurvivorSpriteKey(role, 1, "attack")).toBe(`${base}_attack`);
+      expect(stripSurvivorSpriteKey(role, 0, "hurt")).toBe(`${base}_hurt`);
+    }
   });
 
-  it("alternates gunner vs soldier appearance by survivor index", () => {
-    expect(stripSurvivorSpriteKey("hunter", 0, "idle")).toBe("survivor");
-    expect(stripSurvivorSpriteKey("hunter", 1, "idle")).toBe("survivor_alt");
+  it("uses the same keys for even and odd survivor slots (per-role art is not index-alternated)", () => {
+    expect(stripSurvivorSpriteKey("hunter", 0, "idle")).toBe("survivor_hunter");
+    expect(stripSurvivorSpriteKey("hunter", 1, "idle")).toBe("survivor_hunter");
   });
 
   it("maps zombie kinds to frame keys", () => {

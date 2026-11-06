@@ -1,0 +1,596 @@
+{
+  "style": {
+    "palette": [
+      "#0b0f14",
+      "#2a3544",
+      "#e8eef5",
+      "#3d8bfd"
+    ],
+    "zombieColors": "sickly green/teal; bosses use purple accents",
+    "outline": "1px",
+    "facing": {
+      "survivors": "right",
+      "zombies": "left",
+      "companions": "right",
+      "turret": "left"
+    },
+    "sizes": [
+      32,
+      64
+    ],
+    "source": "AI-generated 1:1 masters, rembg cutout, contrast, BOX pixelize to 64x64, 1px #0c0e14 outline; 32x32 nearest copies under 32/"
+  },
+  "disclosure": "AI-generated pixel art for Zombie Base Defense; disclose on store listings.",
+  "files": [
+    {
+      "path": "survivors/survivor_idle.png",
+      "key": "survivor",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/survivors/survivor_idle.png"
+    },
+    {
+      "path": "survivors/survivor_attack.png",
+      "key": "survivor",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/survivors/survivor_attack.png"
+    },
+    {
+      "path": "survivors/survivor_hurt.png",
+      "key": "survivor",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/survivors/survivor_hurt.png"
+    },
+    {
+      "path": "survivors/survivor_alt_idle.png",
+      "key": "survivor_alt",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/survivors/survivor_alt_idle.png"
+    },
+    {
+      "path": "survivors/survivor_alt_attack.png",
+      "key": "survivor_alt",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/survivors/survivor_alt_attack.png"
+    },
+    {
+      "path": "survivors/survivor_alt_hurt.png",
+      "key": "survivor_alt",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/survivors/survivor_alt_hurt.png"
+    },
+    {
+      "path": "survivors/survivor_melee_idle.png",
+      "key": "survivor_melee",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/survivors/survivor_melee_idle.png"
+    },
+    {
+      "path": "survivors/survivor_melee_attack.png",
+      "key": "survivor_melee",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/survivors/survivor_melee_attack.png"
+    },
+    {
+      "path": "survivors/survivor_melee_hurt.png",
+      "key": "survivor_melee",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/survivors/survivor_melee_hurt.png"
+    },
+    {
+      "path": "zombies/shambler_walk.png",
+      "key": "shambler",
+      "frame": "walk",
+      "size": 64,
+      "size32": "32/zombies/shambler_walk.png"
+    },
+    {
+      "path": "zombies/shambler_attack.png",
+      "key": "shambler",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/zombies/shambler_attack.png"
+    },
+    {
+      "path": "zombies/shambler_die.png",
+      "key": "shambler",
+      "frame": "die",
+      "size": 64,
+      "size32": "32/zombies/shambler_die.png"
+    },
+    {
+      "path": "zombies/runner_walk.png",
+      "key": "runner",
+      "frame": "walk",
+      "size": 64,
+      "size32": "32/zombies/runner_walk.png"
+    },
+    {
+      "path": "zombies/runner_attack.png",
+      "key": "runner",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/zombies/runner_attack.png"
+    },
+    {
+      "path": "zombies/runner_die.png",
+      "key": "runner",
+      "frame": "die",
+      "size": 64,
+      "size32": "32/zombies/runner_die.png"
+    },
+    {
+      "path": "zombies/spitter_walk.png",
+      "key": "spitter",
+      "frame": "walk",
+      "size": 64,
+      "size32": "32/zombies/spitter_walk.png"
+    },
+    {
+      "path": "zombies/spitter_attack.png",
+      "key": "spitter",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/zombies/spitter_attack.png"
+    },
+    {
+      "path": "zombies/spitter_die.png",
+      "key": "spitter",
+      "frame": "die",
+      "size": 64,
+      "size32": "32/zombies/spitter_die.png"
+    },
+    {
+      "path": "zombies/brute_walk.png",
+      "key": "brute",
+      "frame": "walk",
+      "size": 64,
+      "size32": "32/zombies/brute_walk.png"
+    },
+    {
+      "path": "zombies/brute_attack.png",
+      "key": "brute",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/zombies/brute_attack.png"
+    },
+    {
+      "path": "zombies/brute_die.png",
+      "key": "brute",
+      "frame": "die",
+      "size": 64,
+      "size32": "32/zombies/brute_die.png"
+    },
+    {
+      "path": "zombies/crowd_walk.png",
+      "key": "crowd",
+      "frame": "walk",
+      "size": 64,
+      "size32": "32/zombies/crowd_walk.png"
+    },
+    {
+      "path": "zombies/crowd_attack.png",
+      "key": "crowd",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/zombies/crowd_attack.png"
+    },
+    {
+      "path": "zombies/crowd_die.png",
+      "key": "crowd",
+      "frame": "die",
+      "size": 64,
+      "size32": "32/zombies/crowd_die.png"
+    },
+    {
+      "path": "zombies/boss_walk.png",
+      "key": "boss",
+      "frame": "walk",
+      "size": 64,
+      "size32": "32/zombies/boss_walk.png"
+    },
+    {
+      "path": "zombies/boss_attack.png",
+      "key": "boss",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/zombies/boss_attack.png"
+    },
+    {
+      "path": "zombies/boss_die.png",
+      "key": "boss",
+      "frame": "die",
+      "size": 64,
+      "size32": "32/zombies/boss_die.png"
+    },
+    {
+      "path": "world/base_core.png",
+      "key": "base",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/world/base_core.png"
+    },
+    {
+      "path": "world/wall.png",
+      "key": "wall",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/world/wall.png"
+    },
+    {
+      "path": "world/turret.png",
+      "key": "turret",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/world/turret.png"
+    },
+    {
+      "path": "fx/projectile.png",
+      "key": "projectile",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/fx/projectile.png"
+    },
+    {
+      "path": "fx/hit.png",
+      "key": "hit",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/fx/hit.png"
+    },
+    {
+      "path": "fx/muzzle.png",
+      "key": "muzzle",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/fx/muzzle.png"
+    },
+    {
+      "path": "companions/companion_dog.png",
+      "key": "companion_dog",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_dog.png"
+    },
+    {
+      "path": "companions/companion_drone.png",
+      "key": "companion_drone",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_drone.png"
+    },
+    {
+      "path": "companions/companion_mutt.png",
+      "key": "companion_mutt",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_mutt.png"
+    },
+    {
+      "path": "companions/companion_crow.png",
+      "key": "companion_crow",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_crow.png"
+    },
+    {
+      "path": "companions/companion_cat.png",
+      "key": "companion_cat",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_cat.png"
+    },
+    {
+      "path": "companions/companion_badger.png",
+      "key": "companion_badger",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_badger.png"
+    },
+    {
+      "path": "companions/companion_parrot.png",
+      "key": "companion_parrot",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_parrot.png"
+    },
+    {
+      "path": "companions/companion_raven.png",
+      "key": "companion_raven",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/companions/companion_raven.png"
+    },
+    {
+      "path": "icons/weapon_icon.png",
+      "key": "weapon_icon",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/weapon_icon.png"
+    },
+    {
+      "path": "icons/armor_icon.png",
+      "key": "armor_icon",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/armor_icon.png"
+    },
+    {
+      "path": "icons/tool_icon.png",
+      "key": "tool_icon",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/tool_icon.png"
+    },
+    {
+      "path": "icons/trinket_icon.png",
+      "key": "trinket_icon",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/trinket_icon.png"
+    },
+    {
+      "path": "icons/gem_blue.png",
+      "key": "gem_blue",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/gem_blue.png"
+    },
+    {
+      "path": "icons/gem_green.png",
+      "key": "gem_green",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/gem_green.png"
+    },
+    {
+      "path": "icons/gem_red.png",
+      "key": "gem_red",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/gem_red.png"
+    },
+    {
+      "path": "icons/gem_purple.png",
+      "key": "gem_purple",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/icons/gem_purple.png"
+    },
+    {
+      "path": "roles/brawler_idle.png",
+      "key": "survivor_brawler",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/roles/brawler_idle.png"
+    },
+    {
+      "path": "roles/brawler_attack.png",
+      "key": "survivor_brawler",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/roles/brawler_attack.png"
+    },
+    {
+      "path": "roles/brawler_hurt.png",
+      "key": "survivor_brawler",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/roles/brawler_hurt.png"
+    },
+    {
+      "path": "roles/medic_idle.png",
+      "key": "survivor_medic",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/roles/medic_idle.png"
+    },
+    {
+      "path": "roles/medic_attack.png",
+      "key": "survivor_medic",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/roles/medic_attack.png"
+    },
+    {
+      "path": "roles/medic_hurt.png",
+      "key": "survivor_medic",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/roles/medic_hurt.png"
+    },
+    {
+      "path": "roles/engineer_idle.png",
+      "key": "survivor_engineer",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/roles/engineer_idle.png"
+    },
+    {
+      "path": "roles/engineer_attack.png",
+      "key": "survivor_engineer",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/roles/engineer_attack.png"
+    },
+    {
+      "path": "roles/engineer_hurt.png",
+      "key": "survivor_engineer",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/roles/engineer_hurt.png"
+    },
+    {
+      "path": "roles/hunter_idle.png",
+      "key": "survivor_hunter",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/roles/hunter_idle.png"
+    },
+    {
+      "path": "roles/hunter_attack.png",
+      "key": "survivor_hunter",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/roles/hunter_attack.png"
+    },
+    {
+      "path": "roles/hunter_hurt.png",
+      "key": "survivor_hunter",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/roles/hunter_hurt.png"
+    },
+    {
+      "path": "roles/spotter_idle.png",
+      "key": "survivor_spotter",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/roles/spotter_idle.png"
+    },
+    {
+      "path": "roles/spotter_attack.png",
+      "key": "survivor_spotter",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/roles/spotter_attack.png"
+    },
+    {
+      "path": "roles/spotter_hurt.png",
+      "key": "survivor_spotter",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/roles/spotter_hurt.png"
+    },
+    {
+      "path": "roles/warden_idle.png",
+      "key": "survivor_warden",
+      "frame": "idle",
+      "size": 64,
+      "size32": "32/roles/warden_idle.png"
+    },
+    {
+      "path": "roles/warden_attack.png",
+      "key": "survivor_warden",
+      "frame": "attack",
+      "size": 64,
+      "size32": "32/roles/warden_attack.png"
+    },
+    {
+      "path": "roles/warden_hurt.png",
+      "key": "survivor_warden",
+      "frame": "hurt",
+      "size": 64,
+      "size32": "32/roles/warden_hurt.png"
+    }
+  ],
+  "atlasHints": {
+    "survivor": "survivors/survivor_idle.png",
+    "survivor_alt": "survivors/survivor_alt_idle.png",
+    "survivor_melee": "survivors/survivor_melee_idle.png",
+    "zombie": "zombies/shambler_walk.png",
+    "base": "world/base_core.png",
+    "wall": "world/wall.png",
+    "turret": "world/turret.png",
+    "projectile": "fx/projectile.png",
+    "weapon_icon": "icons/weapon_icon.png",
+    "armor_icon": "icons/armor_icon.png",
+    "tool_icon": "icons/tool_icon.png",
+    "trinket_icon": "icons/trinket_icon.png",
+    "companion_dog": "companions/companion_dog.png",
+    "companion_drone": "companions/companion_drone.png",
+    "companion_mutt": "companions/companion_mutt.png",
+    "companion_crow": "companions/companion_crow.png",
+    "companion_cat": "companions/companion_cat.png",
+    "companion_badger": "companions/companion_badger.png",
+    "companion_parrot": "companions/companion_parrot.png",
+    "companion_raven": "companions/companion_raven.png",
+    "survivor_brawler": "roles/brawler_idle.png",
+    "survivor_medic": "roles/medic_idle.png",
+    "survivor_engineer": "roles/engineer_idle.png",
+    "survivor_hunter": "roles/hunter_idle.png",
+    "survivor_spotter": "roles/spotter_idle.png",
+    "survivor_warden": "roles/warden_idle.png"
+  },
+  "kindFrames": {
+    "shambler": {
+      "walk": "zombies/shambler_walk.png",
+      "attack": "zombies/shambler_attack.png",
+      "die": "zombies/shambler_die.png"
+    },
+    "runner": {
+      "walk": "zombies/runner_walk.png",
+      "attack": "zombies/runner_attack.png",
+      "die": "zombies/runner_die.png"
+    },
+    "spitter": {
+      "walk": "zombies/spitter_walk.png",
+      "attack": "zombies/spitter_attack.png",
+      "die": "zombies/spitter_die.png"
+    },
+    "brute": {
+      "walk": "zombies/brute_walk.png",
+      "attack": "zombies/brute_attack.png",
+      "die": "zombies/brute_die.png"
+    },
+    "crowd": {
+      "walk": "zombies/crowd_walk.png",
+      "attack": "zombies/crowd_attack.png",
+      "die": "zombies/crowd_die.png"
+    },
+    "boss": {
+      "walk": "zombies/boss_walk.png",
+      "attack": "zombies/boss_attack.png",
+      "die": "zombies/boss_die.png"
+    }
+  },
+  "sheets": [
+    "sheets/style_reference.png",
+    "sheets/survivors_sheet.png",
+    "sheets/zombies_sheet.png",
+    "sheets/companions_sheet.png",
+    "sheets/strip_preview.png",
+    "sheets/strip_preview_400x80.png",
+    "roles/roles_sheet.png"
+  ],
+  "roleFrames": {
+    "brawler": {
+      "idle": "roles/brawler_idle.png",
+      "attack": "roles/brawler_attack.png",
+      "hurt": "roles/brawler_hurt.png"
+    },
+    "medic": {
+      "idle": "roles/medic_idle.png",
+      "attack": "roles/medic_attack.png",
+      "hurt": "roles/medic_hurt.png"
+    },
+    "engineer": {
+      "idle": "roles/engineer_idle.png",
+      "attack": "roles/engineer_attack.png",
+      "hurt": "roles/engineer_hurt.png"
+    },
+    "hunter": {
+      "idle": "roles/hunter_idle.png",
+      "attack": "roles/hunter_attack.png",
+      "hurt": "roles/hunter_hurt.png"
+    },
+    "spotter": {
+      "idle": "roles/spotter_idle.png",
+      "attack": "roles/spotter_attack.png",
+      "hurt": "roles/spotter_hurt.png"
+    },
+    "warden": {
+      "idle": "roles/warden_idle.png",
+      "attack": "roles/warden_attack.png",
+      "hurt": "roles/warden_hurt.png"
+    }
+  }
+}
