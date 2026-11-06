@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node ../../tools/build-sprite-atlas.mjs",
+    "prebuild": "node ../../tools/build-sprite-atlas.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

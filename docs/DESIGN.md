@@ -63,6 +63,8 @@ Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, *
 
 **Placeholders**: **Kenney CC0** assets under `assets/` remain until replaced; see `assets/ASSETS.md`.
 
+**Machine-readable ART_RULES**: `assets/art-rules.json` (same content as this table, for tooling and pipeline checks).
+
 **AI-generated art**: **Allowed** for sprites, UI, and promotional art **if** it follows this style guide. **Store listing** must **disclose** AI-assisted artwork (per platform policy and team ethics).
 
 ## Product pillars (ZBD)

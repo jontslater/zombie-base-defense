@@ -16,6 +16,10 @@ No AI-generated images are included.
 
 Packs were downloaded from Kenney.nl inside the development environment (November 2026).
 
+## Sprite manifest (strip combat art)
+
+Strip Phaser sprites are listed in **`sprite.manifest.json`** and packed to **`generated/sprites-atlas.png`** + **`generated/sprites-atlas.json`** (plus **`generated/slices/*.png`** for DOM/CSS). See **`README.md`** in this folder for Kenney vs AI intake. Rebuild with `pnpm build:sprites` or via `pnpm dev` / `pnpm --filter @zbd/desktop build`.
+
 ## Files in this repo
 
 ### `sprites/`

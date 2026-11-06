@@ -1,7 +1,7 @@
 import type { GearSlot } from "@zbd/sim";
 
 const SLOT_ICON: Record<GearSlot, string> = {
-  weapon: "/sprites/weapon_icon.png",
+  weapon: "/generated/slices/weapon_icon.png",
   armor: "/ui/icon_armor.png",
   tool: "/ui/icon_tool.png",
   trinket: "/ui/star.png",

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "description": "Single source list for the strip Phaser atlas. Add a row and drop a PNG under assets/; run pnpm build:sprites (or pnpm dev / pnpm build) to rebuild the atlas.",
+  "output": {
+    "image": "generated/sprites-atlas.png",
+    "atlas": "generated/sprites-atlas.json"
+  },
+  "padding": 1,
+  "sprites": [
+    { "key": "survivor", "file": "sprites/survivor.png" },
+    { "key": "survivor_alt", "file": "sprites/survivor_alt.png" },
+    { "key": "zombie", "file": "sprites/zombie.png" },
+    { "key": "base", "file": "sprites/base.png" },
+    { "key": "wall", "file": "sprites/wall.png" },
+    { "key": "turret", "file": "sprites/turret.png" },
+    { "key": "projectile", "file": "sprites/projectile.png" },
+    { "key": "weapon_icon", "file": "sprites/weapon_icon.png" }
+  ]
+}
