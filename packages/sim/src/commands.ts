@@ -10,9 +10,12 @@ import {
   ALCHEMY_FORGE_MATERIALS,
   ALCHEMY_FORGE_SCRAP,
   BASE_UPGRADE_IDS,
+  GEM_COMBINE_INPUT_COUNT,
   GEAR_SLOTS,
   RARITIES,
   RARITY_WEIGHTS,
+  SOCKET_FORGE_MATERIALS,
+  SOCKET_FORGE_SCRAP,
   SYNTHESIS_INPUT_COUNT,
   SYNTHESIS_SCRAP_COST,
   WORKBENCH_ENHANCE_SCRAP,
@@ -32,6 +35,8 @@ import {
   type SkillNodeId,
   type SurvivorRoleId,
 } from "./survivorRoles.js";
+import { makeGearItem, makeGemItem } from "./gearFactory.js";
+import { maxSocketsForRarity, sanitizeGearItem } from "./gearModel.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import { createInitialState } from "./save.js";
 import { perimeterSecondForgeUnlocked, tryBuyPerimeterNode } from "./perimeter.js";
@@ -42,7 +47,7 @@ import {
   subtractMaterials,
   salvageYieldForGear,
 } from "./workbenchMaterials.js";
-import type { GameState, GearItem } from "./types.js";
+import type { GameState, GearItem, GemItem } from "./types.js";
 
 export type CommandBase = {
   id: string;
@@ -145,6 +150,35 @@ export type BuyPerimeterNodeCommand = CommandBase & {
   nodeId: PerimeterNodeId;
 };
 
+export type SocketForgeCommand = CommandBase & {
+  type: "SOCKET_FORGE";
+  /** Unlock one socket on this inventory piece. */
+  inventoryIndex: number;
+};
+
+export type GemCombineCommand = CommandBase & {
+  type: "GEM_COMBINE";
+  gemInventoryIndices: number[];
+};
+
+export type SocketGemCommand = CommandBase & {
+  type: "SOCKET_GEM";
+  gemInventoryIndex: number;
+  socketIndex: number;
+  /** Equip target — exactly one of (survivorId+equipSlot) or inventoryGearIndex. */
+  survivorId?: string;
+  equipSlot?: GearSlot;
+  inventoryGearIndex?: number;
+};
+
+export type UnsocketGemCommand = CommandBase & {
+  type: "UNSOCKET_GEM";
+  socketIndex: number;
+  survivorId?: string;
+  equipSlot?: GearSlot;
+  inventoryGearIndex?: number;
+};
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -163,7 +197,11 @@ export type GameCommand =
   | SynthesisCombineCommand
   | AlchemyForgeCommand
   | SetCampaignStageCommand
-  | BuyPerimeterNodeCommand;
+  | BuyPerimeterNodeCommand
+  | SocketForgeCommand
+  | GemCombineCommand
+  | SocketGemCommand
+  | UnsocketGemCommand;
 
 /** @deprecated Prefer `upgradeCostAtLevel` from constants. */
 export function upgradeCost(level: number): number {
@@ -214,6 +252,33 @@ function applySetCampaignStage(
   return { ...state, currentStageKey: key, wave };
 }
 
+function mapInventoryGear(
+  state: GameState,
+  index: number,
+  fn: (g: GearItem) => GearItem,
+): GameState {
+  const it = state.inventory[index];
+  if (!it) return state;
+  const next = fn(it);
+  const inventory = state.inventory.map((g, i) => (i === index ? next : g));
+  return { ...state, inventory };
+}
+
+function mapEquippedGear(
+  state: GameState,
+  survivorId: string,
+  slot: GearSlot,
+  fn: (g: GearItem) => GearItem,
+): GameState {
+  const survivors = state.survivors.map((s) => {
+    if (s.id !== survivorId) return s;
+    const it = s.gear[slot];
+    if (!it) return s;
+    return { ...s, gear: { ...s.gear, [slot]: fn(it) } };
+  });
+  return { ...state, survivors };
+}
+
 export function applyCommand(state: GameState, cmd: GameCommand): GameState {
   switch (cmd.type) {
     case "REBORN":
@@ -244,8 +309,9 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       };
     }
     case "EQUIP_GEAR": {
-      const item = state.inventory[cmd.inventoryIndex];
-      if (!item) return state;
+      const rawItem = state.inventory[cmd.inventoryIndex];
+      if (!rawItem) return state;
+      const item = sanitizeGearItem(rawItem);
       const survivor = state.survivors.find((s) => s.id === cmd.survivorId);
       if (!survivor) return state;
       const inventory = state.inventory.filter((_, i) => i !== cmd.inventoryIndex);
@@ -347,19 +413,43 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       }
       const item = state.inventory[cmd.inventoryIndex];
       if (!item) return state;
-      const { result, rngState } = withRng(state, (rng) => {
+      const { result: rerollPayload, rngState } = withRng(state, (rng) => {
         const rarity = pickWeighted(rng, RARITY_WEIGHTS) as Rarity;
         const rarityIndex = RARITIES.indexOf(rarity);
         const power = Math.floor(item.power * (0.85 + rarityIndex * 0.08) + rollInt(rng, 1, 4));
-        return { ...item, rarity, power: Math.max(1, power) };
+        const base = makeGearItem({
+          id: item.id,
+          slot: item.slot,
+          rarity,
+          power: Math.max(1, power),
+          rng,
+        });
+        const maxN = maxSocketsForRarity(rarity);
+        const returned: GemItem[] = [];
+        const sockets: (GemItem | null)[] = [];
+        for (let i = 0; i < maxN; i++) {
+          const g = item.sockets[i] ?? null;
+          sockets.push(g);
+        }
+        for (let i = maxN; i < item.sockets.length; i++) {
+          const g = item.sockets[i];
+          if (g) returned.push(g);
+        }
+        return {
+          gear: sanitizeGearItem({ ...base, sockets }),
+          gemsReturned: returned,
+        };
       });
-      if (!result) return state;
-      const inventory = state.inventory.map((it, i) => (i === cmd.inventoryIndex ? result : it));
+      const rerolled = rerollPayload?.gear;
+      const gemsReturned = rerollPayload?.gemsReturned ?? [];
+      if (!rerolled) return state;
+      const inventory = state.inventory.map((it, i) => (i === cmd.inventoryIndex ? rerolled : it));
       return {
         ...state,
         scrap: state.scrap - WORKBENCH_REROLL_SCRAP,
         currency: state.currency - WORKBENCH_REROLL_CURRENCY,
         inventory,
+        gemInventory: [...state.gemInventory, ...gemsReturned],
         rngState,
       };
     }
@@ -369,10 +459,12 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       if (!item) return state;
       const yieldMap = salvageYieldForGear(item);
       const inventory = state.inventory.filter((_, i) => i !== cmd.inventoryIndex);
+      const gemsFromSockets = item.sockets.filter((g): g is GemItem => g !== null);
       return {
         ...state,
         inventory,
         materials: addMaterials(state, yieldMap),
+        gemInventory: [...state.gemInventory, ...gemsFromSockets],
       };
     }
     case "SYNTHESIS_COMBINE": {
@@ -384,6 +476,12 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       if (uniq.size !== SYNTHESIS_INPUT_COUNT) return state;
       if (idxs.some((i) => i < 0 || i >= state.inventory.length)) return state;
       const items = idxs.map((i) => state.inventory[i]!);
+      const gemsFromSockets: GemItem[] = [];
+      for (const it of items) {
+        for (const g of it.sockets) {
+          if (g) gemsFromSockets.push(g);
+        }
+      }
       const rarity = items[0]!.rarity;
       if (items.some((it) => it.rarity !== rarity)) return state;
       const ri = RARITIES.indexOf(rarity);
@@ -406,12 +504,20 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
           (5 + encounterWave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4),
         );
         const id = `syn-${state.tick}-${rollInt(rng, 1000, 9999)}`;
-        return { id, slot, rarity: nextRarity, power: Math.max(1, power) } satisfies GearItem;
+        return makeGearItem({
+          id,
+          slot,
+          rarity: nextRarity,
+          power: Math.max(1, power),
+          rng,
+        });
       });
+      if (!newItem) return state;
 
       return {
         ...state,
-        inventory: [...inventory, newItem],
+        inventory: [...inventory, sanitizeGearItem(newItem)],
+        gemInventory: [...state.gemInventory, ...gemsFromSockets],
         scrap: state.scrap - SYNTHESIS_SCRAP_COST,
         rngState,
       };
@@ -437,22 +543,148 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
           (5 + encounterWave * 0.5) * (1 + rarityIndex * 0.35) + rollInt(rng, 1, 4),
         );
         const id = `forge-${state.tick}-${rollInt(rng, 1000, 9999)}`;
-        return {
+        return makeGearItem({
           id,
           slot: cmd.slot,
           rarity,
           power: Math.max(1, power),
-        } satisfies GearItem;
+          rng,
+        });
       });
       if (!result) return state;
+      const forged = sanitizeGearItem(result);
       return {
         ...state,
         scrap: state.scrap - ALCHEMY_FORGE_SCRAP,
         currency: state.currency - forgeCurrencyCost,
         materials: subtractMaterials(state, ALCHEMY_FORGE_MATERIALS),
-        inventory: [...state.inventory, result],
+        inventory: [...state.inventory, forged],
         rngState,
       };
+    }
+    case "SOCKET_FORGE": {
+      if (state.upgrades.workbench <= 0) return state;
+      if (state.scrap < SOCKET_FORGE_SCRAP || !materialsCanAfford(state, SOCKET_FORGE_MATERIALS)) {
+        return state;
+      }
+      const item = state.inventory[cmd.inventoryIndex];
+      if (!item) return state;
+      const maxSoc = maxSocketsForRarity(item.rarity);
+      if (item.sockets.length >= maxSoc) return state;
+      return mapInventoryGear(
+        {
+          ...state,
+          scrap: state.scrap - SOCKET_FORGE_SCRAP,
+          materials: subtractMaterials(state, SOCKET_FORGE_MATERIALS),
+        },
+        cmd.inventoryIndex,
+        (g) => sanitizeGearItem({ ...g, sockets: [...g.sockets, null] }),
+      );
+    }
+    case "GEM_COMBINE": {
+      if (state.upgrades.workbench <= 0) return state;
+      const idxs = [...cmd.gemInventoryIndices];
+      if (idxs.length !== GEM_COMBINE_INPUT_COUNT) return state;
+      if (new Set(idxs).size !== GEM_COMBINE_INPUT_COUNT) return state;
+      if (idxs.some((i) => i < 0 || i >= state.gemInventory.length)) return state;
+      const gems = idxs.map((i) => state.gemInventory[i]!);
+      const k0 = gems[0]!.kind;
+      const t0 = gems[0]!.tier;
+      if (gems.some((g) => g.kind !== k0 || g.tier !== t0)) return state;
+      if (t0 >= 9) return state;
+      const sortedDesc = [...idxs].sort((a, b) => b - a);
+      let gemInventory = [...state.gemInventory];
+      for (const r of sortedDesc) gemInventory.splice(r, 1);
+      const { result, rngState } = withRng(state, (rng) =>
+        makeGemItem({
+          id: `gemc-${state.tick}-${rollInt(rng, 1000, 9999)}`,
+          kind: k0,
+          tier: t0 + 1,
+        }),
+      );
+      if (!result) return state;
+      return {
+        ...state,
+        gemInventory: [...gemInventory, result],
+        rngState,
+      };
+    }
+    case "SOCKET_GEM": {
+      if (state.upgrades.workbench <= 0) return state;
+      const gem = state.gemInventory[cmd.gemInventoryIndex];
+      if (!gem) return state;
+      const idxGem = cmd.gemInventoryIndex;
+
+      const applyTo = (gear: GearItem): GearItem | null => {
+        const si = cmd.socketIndex;
+        if (si < 0 || si >= gear.sockets.length) return null;
+        if (gear.sockets[si]) return null;
+        const sockets = [...gear.sockets];
+        sockets[si] = gem;
+        return sanitizeGearItem({ ...gear, sockets });
+      };
+
+      let next: GameState = { ...state };
+      if (cmd.inventoryGearIndex !== undefined) {
+        const g = state.inventory[cmd.inventoryGearIndex];
+        if (!g) return state;
+        const updated = applyTo(g);
+        if (!updated) return state;
+        next = mapInventoryGear(next, cmd.inventoryGearIndex, () => updated);
+      } else if (cmd.survivorId !== undefined && cmd.equipSlot !== undefined) {
+        const s = state.survivors.find((x) => x.id === cmd.survivorId);
+        const g = s?.gear[cmd.equipSlot];
+        if (!g) return state;
+        const updated = applyTo(g);
+        if (!updated) return state;
+        next = mapEquippedGear(next, cmd.survivorId, cmd.equipSlot, () => updated);
+      } else {
+        return state;
+      }
+
+      next = {
+        ...next,
+        gemInventory: next.gemInventory.filter((_, i) => i !== idxGem),
+      };
+      return next;
+    }
+    case "UNSOCKET_GEM": {
+      if (state.upgrades.workbench <= 0) return state;
+      const si = cmd.socketIndex;
+      const pull = (gear: GearItem): { gear: GearItem; gem: GemItem } | null => {
+        if (si < 0 || si >= gear.sockets.length) return null;
+        const g = gear.sockets[si];
+        if (!g) return null;
+        const sockets = [...gear.sockets];
+        sockets[si] = null;
+        return { gear: sanitizeGearItem({ ...gear, sockets }), gem: g };
+      };
+
+      if (cmd.inventoryGearIndex !== undefined) {
+        const g = state.inventory[cmd.inventoryGearIndex];
+        if (!g) return state;
+        const out = pull(g);
+        if (!out) return state;
+        return mapInventoryGear(
+          { ...state, gemInventory: [...state.gemInventory, out.gem] },
+          cmd.inventoryGearIndex,
+          () => out.gear,
+        );
+      }
+      if (cmd.survivorId !== undefined && cmd.equipSlot !== undefined) {
+        const s = state.survivors.find((x) => x.id === cmd.survivorId);
+        const g = s?.gear[cmd.equipSlot];
+        if (!g) return state;
+        const out = pull(g);
+        if (!out) return state;
+        return mapEquippedGear(
+          { ...state, gemInventory: [...state.gemInventory, out.gem] },
+          cmd.survivorId,
+          cmd.equipSlot,
+          () => out.gear,
+        );
+      }
+      return state;
     }
     case "BUY_PERIMETER_NODE": {
       const result = tryBuyPerimeterNode(state, cmd.nodeId);

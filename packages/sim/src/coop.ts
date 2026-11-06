@@ -125,6 +125,10 @@ const GUEST_ALLOWED: GameCommand["type"][] = [
   "SALVAGE_GEAR",
   "SYNTHESIS_COMBINE",
   "ALCHEMY_FORGE",
+  "SOCKET_FORGE",
+  "GEM_COMBINE",
+  "SOCKET_GEM",
+  "UNSOCKET_GEM",
 ];
 
 export function survivorForClient(state: GameState, clientId: string): SurvivorState | undefined {
@@ -154,7 +158,16 @@ export function validateGuestCommand(
     case "SALVAGE_GEAR":
     case "SYNTHESIS_COMBINE":
     case "ALCHEMY_FORGE":
+    case "SOCKET_FORGE":
+    case "GEM_COMBINE":
       return cmd;
+    case "SOCKET_GEM":
+    case "UNSOCKET_GEM": {
+      if (cmd.survivorId !== undefined && cmd.survivorId !== owned.id) return null;
+      if (cmd.inventoryGearIndex !== undefined) return cmd;
+      if (cmd.survivorId !== undefined && cmd.equipSlot !== undefined) return cmd;
+      return null;
+    }
     default:
       return null;
   }

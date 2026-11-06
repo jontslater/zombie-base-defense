@@ -1,6 +1,8 @@
 import {
+  AFFIX_IDS,
   BASE_UPGRADE_IDS,
   GEAR_SLOTS,
+  GEM_KINDS,
   INITIAL_CURRENCY,
   MATERIAL_IDS,
   PERIMETER_NODE_IDS,
@@ -8,7 +10,9 @@ import {
   STANCES,
   TARGET_MODES,
   type BaseUpgradeId,
+  type AffixId,
   type GearSlot,
+  type GemKind,
   type MaterialId,
   type PerimeterNodeId,
   type Rarity,
@@ -16,9 +20,12 @@ import {
   type TargetMode,
 } from "./constants.js";
 import { CAMPAIGN_LAST_STAGE_KEY, stageKeyFromCampaignWave } from "./campaign.js";
+import { sanitizeGearItem } from "./gearModel.js";
 import { SKILL_NODE_IDS, SURVIVOR_ROLE_IDS, type SurvivorRoleId } from "./survivorRoles.js";
 import type {
+  GearAffix,
   GearItem,
+  GemItem,
   GameState,
   Materials,
   PerimeterUnlocked,
@@ -42,6 +49,45 @@ function isRarity(s: string): s is Rarity {
   return (RARITIES as readonly string[]).includes(s);
 }
 
+function isAffixId(s: string): s is AffixId {
+  return (AFFIX_IDS as readonly string[]).includes(s);
+}
+
+function isGemKind(s: string): s is GemKind {
+  return (GEM_KINDS as readonly string[]).includes(s);
+}
+
+function asGemItem(raw: unknown): GemItem | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const id = str(o.id, "gem-unknown");
+  const kind = o.kind;
+  const tier = num(o.tier, 1);
+  if (typeof kind !== "string" || !isGemKind(kind)) return null;
+  return { id, kind, tier: Math.max(1, Math.floor(tier)) };
+}
+
+function asGearAffixes(raw: unknown): GearAffix[] {
+  if (!Array.isArray(raw)) return [];
+  const out: GearAffix[] = [];
+  for (const line of raw) {
+    if (!line || typeof line !== "object") continue;
+    const o = line as Record<string, unknown>;
+    const id = o.id;
+    if (typeof id !== "string" || !isAffixId(id)) continue;
+    out.push({ id, value: Math.max(1, Math.floor(num(o.value, 1))) });
+  }
+  return out;
+}
+
+function asSockets(raw: unknown): (GemItem | null)[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((cell) => {
+    if (cell === null || cell === undefined) return null;
+    return asGemItem(cell);
+  });
+}
+
 function asGearItem(raw: unknown): GearItem | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
@@ -51,12 +97,15 @@ function asGearItem(raw: unknown): GearItem | null {
   if (!isGearSlot(slot) || !isRarity(rarity)) return null;
   const id = str(o.id, "unknown");
   const power = num(o.power, 1);
-  return {
+  const draft: GearItem = {
     id,
     slot,
     rarity,
     power: Math.max(1, power),
+    sockets: asSockets(o.sockets),
+    affixes: asGearAffixes(o.affixes),
   };
+  return sanitizeGearItem(draft);
 }
 
 function normalizeGearMap(raw: unknown): Partial<Record<GearSlot, GearItem>> {
@@ -237,6 +286,9 @@ export function normalizeGameState(raw: unknown): GameState {
   const inventoryList: unknown[] = Array.isArray(o.inventory) ? o.inventory : [];
   const inventory: GearItem[] = inventoryList.map(asGearItem).filter((x): x is GearItem => x !== null);
 
+  const gemList: unknown[] = Array.isArray(o.gemInventory) ? o.gemInventory : [];
+  const gemInventory: GemItem[] = gemList.map(asGemItem).filter((x): x is GemItem => x !== null);
+
   const baseCoreMaxHp = Math.max(1, num(o.baseCoreMaxHp, 200));
   const baseCoreHp = Math.min(Math.max(0, num(o.baseCoreHp, baseCoreMaxHp)), baseCoreMaxHp);
 
@@ -271,6 +323,7 @@ export function normalizeGameState(raw: unknown): GameState {
     survivors,
     combat: normalizeCombat(o.combat),
     inventory,
+    gemInventory,
     totalKills: Math.max(0, Math.floor(num(o.totalKills, 0))),
     perimeterUnlocked,
     rebornCount,

@@ -12,3 +12,6 @@ export * from "./offline.js";
 export * from "./workbenchMaterials.js";
 export * from "./perimeter.js";
 export * from "./survivorRoles.js";
+export * from "./gearModel.js";
+export * from "./gearFactory.js";
+export * from "./gearBonuses.js";

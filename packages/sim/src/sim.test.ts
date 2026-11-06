@@ -41,7 +41,7 @@ describe("loot rolls", () => {
   it("returns valid rarities", () => {
     let state = createInitialState(42);
     for (let i = 0; i < 200; i++) {
-      const { state: next, item } = rollLoot(state, 5);
+      const { state: next, item } = rollLoot(state);
       state = next;
       if (item) {
         expect(RARITIES).toContain(item.rarity);
@@ -51,8 +51,8 @@ describe("loot rolls", () => {
   });
 
   it("is deterministic for a fixed seed", () => {
-    const a = rollLoot(createInitialState(999), 3);
-    const b = rollLoot(createInitialState(999), 3);
+    const a = rollLoot(createInitialState(999));
+    const b = rollLoot(createInitialState(999));
     expect(a.item?.id).toEqual(b.item?.id);
     expect(a.item?.rarity).toEqual(b.item?.rarity);
   });
@@ -101,6 +101,7 @@ describe("save round-trip", () => {
     expect(env.state.currentStageKey).toBe(stageKeyFromCampaignWave(4));
     expect(env.state.campaignHighestClearedKey).toBeGreaterThanOrEqual(-1);
     expect(env.state.perimeterUnlocked).toEqual({});
+    expect(env.state.gemInventory).toEqual([]);
   });
 
   it("rejects invalid save envelopes", () => {

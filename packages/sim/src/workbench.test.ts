@@ -13,6 +13,7 @@ import { applyCommand, createInitialState, loadFromJson, saveToJson } from "./in
 import type { GameCommand } from "./commands.js";
 import { diffGameState, applyGameStateDelta } from "./delta.js";
 import { salvageYieldForGear } from "./workbenchMaterials.js";
+import { testGear } from "./testGear.js";
 
 function withEncounterWave(state: ReturnType<typeof createInitialState>, wave: number) {
   const w = Math.max(1, Math.min(120, wave));
@@ -39,7 +40,7 @@ describe("Salvage (inventory → materials)", () => {
     let state = withWorkbench(101);
     state = {
       ...state,
-      inventory: [{ id: "loot-a", slot: "weapon", rarity: "Common", power: 10 }],
+      inventory: [testGear({ id: "loot-a", slot: "weapon", rarity: "Common", power: 10 })],
     };
     const yieldMap = salvageYieldForGear(state.inventory[0]!);
     const beforeMat = state.materials.alloy;
@@ -52,7 +53,7 @@ describe("Salvage (inventory → materials)", () => {
     let state = createInitialState(102);
     state = {
       ...state,
-      inventory: [{ id: "loot-b", slot: "armor", rarity: "Rare", power: 5 }],
+      inventory: [testGear({ id: "loot-b", slot: "armor", rarity: "Rare", power: 5 })],
     };
     const snapshot = JSON.stringify(state);
     state = applyCommand(state, { ...baseCmd(), type: "SALVAGE_GEAR", inventoryIndex: 0 } as GameCommand);
@@ -65,12 +66,14 @@ describe("Synthesis (9 same rarity → next tier)", () => {
     let state = withWorkbench(201, SYNTHESIS_SCRAP_COST + 5);
     const baseWave = 6;
     state = withEncounterWave(state, baseWave);
-    const items = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) => ({
-      id: `c-${i}`,
-      slot: "weapon" as const,
-      rarity: "Common" as const,
-      power: 5,
-    }));
+    const items = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) =>
+      testGear({
+        id: `c-${i}`,
+        slot: "weapon",
+        rarity: "Common",
+        power: 5,
+      }),
+    );
     state = { ...state, inventory: items };
     const beforeScrap = state.scrap;
     const indices = items.map((_, i) => i);
@@ -86,13 +89,10 @@ describe("Synthesis (9 same rarity → next tier)", () => {
   it("rejects mixed rarities or duplicate indices", () => {
     let state = withWorkbench(202, 100);
     const mixed = [
-      ...Array.from({ length: 8 }, (_, i) => ({
-        id: `m-${i}`,
-        slot: "weapon" as const,
-        rarity: "Common" as const,
-        power: 1,
-      })),
-      { id: "m-x", slot: "weapon" as const, rarity: "Uncommon" as const, power: 1 },
+      ...Array.from({ length: 8 }, (_, i) =>
+        testGear({ id: `m-${i}`, slot: "weapon", rarity: "Common", power: 1 }),
+      ),
+      testGear({ id: "m-x", slot: "weapon", rarity: "Uncommon", power: 1 }),
     ];
     state = { ...state, inventory: mixed };
     const bad = applyCommand(
@@ -105,12 +105,9 @@ describe("Synthesis (9 same rarity → next tier)", () => {
     );
     expect(bad.inventory).toHaveLength(9);
 
-    const same = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) => ({
-      id: `s-${i}`,
-      slot: "weapon" as const,
-      rarity: "Common" as const,
-      power: 1,
-    }));
+    const same = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) =>
+      testGear({ id: `s-${i}`, slot: "weapon", rarity: "Common", power: 1 }),
+    );
     state = { ...state, inventory: same };
     const dupIdx = applyCommand(
       state,
@@ -126,12 +123,9 @@ describe("Synthesis (9 same rarity → next tier)", () => {
   it("rejects if apex rarity (no next tier)", () => {
     let state = withWorkbench(203, SYNTHESIS_SCRAP_COST + 2);
     const apex = RARITIES[RARITIES.length - 1]!;
-    const items = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) => ({
-      id: `a-${i}`,
-      slot: "weapon" as const,
-      rarity: apex,
-      power: 50,
-    }));
+    const items = Array.from({ length: SYNTHESIS_INPUT_COUNT }, (_, i) =>
+      testGear({ id: `a-${i}`, slot: "weapon", rarity: apex, power: 50 }),
+    );
     state = { ...state, inventory: items };
     const after = applyCommand(
       state,

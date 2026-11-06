@@ -24,6 +24,10 @@ import {
   type AlchemyForgeCommand,
   type SetCampaignStageCommand,
   type BuyPerimeterNodeCommand,
+  type SocketForgeCommand,
+  type GemCombineCommand,
+  type SocketGemCommand,
+  type UnsocketGemCommand,
 } from "@zbd/sim";
 
 const SAVE_KEY = "zbd_save_v1";
@@ -124,7 +128,11 @@ export type CommandInput =
   | StripMeta<SynthesisCombineCommand>
   | StripMeta<AlchemyForgeCommand>
   | StripMeta<SetCampaignStageCommand>
-  | StripMeta<BuyPerimeterNodeCommand>;
+  | StripMeta<BuyPerimeterNodeCommand>
+  | StripMeta<SocketForgeCommand>
+  | StripMeta<GemCombineCommand>
+  | StripMeta<SocketGemCommand>
+  | StripMeta<UnsocketGemCommand>;
 
 export function issueCommand(rt: GameRuntime, partial: CommandInput): GameRuntime {
   const cmd = {

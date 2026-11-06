@@ -1,7 +1,4 @@
-import {
-  campaignStageIsBoss,
-  campaignWaveNumberFromStageKey,
-} from "./campaign.js";
+import { campaignStageIsBoss, campaignWaveNumberFromStageKey } from "./campaign.js";
 import {
   BOSS_EVERY_N_WAVES,
   RARITIES,
@@ -10,6 +7,12 @@ import {
   rebornDpsMultiplier,
   type Rarity,
 } from "./constants.js";
+import {
+  armorHpBonus,
+  partyHunterMultiplier,
+  weaponFlatBonus,
+} from "./gearBonuses.js";
+import { makeGearItem } from "./gearFactory.js";
 import { stanceDamageMultiplier, targetFocusMultiplier } from "./coop.js";
 import {
   perimeterLootDropChanceAdd,
@@ -61,28 +64,26 @@ export function survivorDps(state: GameState): number {
   const turretSkill = state.survivors.reduce((acc, s) => acc * engineerTurretSkillMultiplier(s), 1);
   const turretBonus = turretLevel * 2 * turretSkill;
   const bossWave = campaignStageIsBoss(state.currentStageKey);
+  const hunterMult = partyHunterMultiplier(state);
   const fromSurvivors = state.survivors.reduce((sum, s) => {
-    let dmg = s.damage;
-    const weapon = s.gear.weapon;
-    if (weapon) dmg += weapon.power * 0.5;
+    let dmg = s.damage + weaponFlatBonus(s);
     dmg *= survivorStanceDamageMultiplier(s, stanceDamageMultiplier(s.stance));
     dmg *= targetFocusMultiplier(s.target, bossWave);
     dmg *= survivorSkillDamageMultiplier(s, { isBossWave: bossWave });
     return sum + dmg;
   }, 0);
-  return (fromSurvivors + turretBonus) * dpsMult * perimeterSurvivorDpsMult(state);
+  return (fromSurvivors + turretBonus) * dpsMult * hunterMult * perimeterSurvivorDpsMult(state);
 }
 
 export function survivorEffectiveHp(state: GameState): number {
   return state.survivors.reduce((sum, s) => {
-    let max = s.maxHp * survivorSkillMaxHpMultiplier(s);
-    const armor = s.gear.armor;
-    if (armor) max += armor.power;
+    const max = s.maxHp * survivorSkillMaxHpMultiplier(s) + armorHpBonus(s);
     return sum + Math.min(s.hp, max);
   }, 0);
 }
 
-export function rollLoot(state: GameState, wave: number): { state: GameState; item: GearItem | null } {
+export function rollLoot(state: GameState): { state: GameState; item: GearItem | null } {
+  const encounterWave = campaignWaveNumberFromStageKey(state.currentStageKey);
   const lootBonus =
     state.upgrades.workbench * 0.02 +
     state.survivors.reduce((b, s) => b + survivorLootDropSkillBonus(s), 0);
@@ -90,7 +91,7 @@ export function rollLoot(state: GameState, wave: number): { state: GameState; it
   const { result, rngState } = withRng(state, (rng) => {
     const dropChance = Math.min(
       0.65,
-      0.15 + wave * 0.008 + lootBonus + perimeterLootDropChanceAdd(state),
+      0.15 + encounterWave * 0.008 + lootBonus + perimeterLootDropChanceAdd(state),
     );
     if (rng.next() > dropChance) return null;
 
@@ -99,17 +100,23 @@ export function rollLoot(state: GameState, wave: number): { state: GameState; it
     for (const r of RARITIES) {
       if (r !== "Common") weights[r] = Math.floor(weights[r] * bandShift);
     }
-    if (wave >= 20) weights.Apocalyptic = weights.Apocalyptic * 2;
-    if (wave >= 10) weights.Mythic = weights.Mythic * 1.5;
+    if (encounterWave >= 20) weights.Apocalyptic = weights.Apocalyptic * 2;
+    if (encounterWave >= 10) weights.Mythic = weights.Mythic * 1.5;
 
     const rarity = pickWeighted(rng, weights);
     const slotRoll = rollInt(rng, 0, 3);
     const slots = ["weapon", "armor", "tool", "trinket"] as const;
     const slot = slots[slotRoll]!;
     const rarityIndex = RARITIES.indexOf(rarity as Rarity);
-    const power = Math.floor((5 + wave * 0.5) * (1 + rarityIndex * 0.35));
+    const power = Math.floor((5 + encounterWave * 0.5) * (1 + rarityIndex * 0.35));
     const id = `loot-${state.tick}-${rollInt(rng, 1000, 9999)}`;
-    return { id, slot, rarity: rarity as Rarity, power } satisfies GearItem;
+    return makeGearItem({
+      id,
+      slot,
+      rarity: rarity as Rarity,
+      power,
+      rng,
+    });
   });
 
   return {
