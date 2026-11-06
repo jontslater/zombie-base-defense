@@ -23,11 +23,13 @@ import {
   REBORN_MIN_WAVE,
   rebornStartingCurrency,
   upgradeCostAtLevel,
+  type PerimeterNodeId,
   type Rarity,
 } from "./constants.js";
 import type { BaseUpgradeId, GearSlot, SkillNodeId, Stance, TargetMode } from "./constants.js";
 import { pickWeighted, rollInt, withRng } from "./rng.js";
 import { createInitialState } from "./save.js";
+import { perimeterSecondForgeUnlocked, tryBuyPerimeterNode } from "./perimeter.js";
 import { startWave } from "./waves.js";
 import {
   addMaterials,
@@ -127,6 +129,11 @@ export type SetCampaignStageCommand = CommandBase & {
   stage: number;
 };
 
+export type BuyPerimeterNodeCommand = CommandBase & {
+  type: "BUY_PERIMETER_NODE";
+  nodeId: PerimeterNodeId;
+};
+
 export type GameCommand =
   | TickCommand
   | StartWaveCommand
@@ -143,7 +150,8 @@ export type GameCommand =
   | SalvageGearCommand
   | SynthesisCombineCommand
   | AlchemyForgeCommand
-  | SetCampaignStageCommand;
+  | SetCampaignStageCommand
+  | BuyPerimeterNodeCommand;
 
 /** @deprecated Prefer `upgradeCostAtLevel` from constants. */
 export function upgradeCost(level: number): number {
@@ -165,6 +173,7 @@ export function applyReborn(state: GameState): GameState {
     rebornCount: state.rebornCount + 1,
     lifetimeCurrencyEarned: state.lifetimeCurrencyEarned + payout,
     currency: payout,
+    perimeterUnlocked: { ...state.perimeterUnlocked },
   };
 }
 
@@ -392,9 +401,12 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
     case "ALCHEMY_FORGE": {
       if (state.upgrades.workbench <= 0) return state;
       if (!GEAR_SLOTS.includes(cmd.slot)) return state;
+      const forgeCurrencyCost = perimeterSecondForgeUnlocked(state)
+        ? Math.max(1, ALCHEMY_FORGE_CURRENCY - 5)
+        : ALCHEMY_FORGE_CURRENCY;
       if (
         state.scrap < ALCHEMY_FORGE_SCRAP ||
-        state.currency < ALCHEMY_FORGE_CURRENCY ||
+        state.currency < forgeCurrencyCost ||
         !materialsCanAfford(state, ALCHEMY_FORGE_MATERIALS)
       ) {
         return state;
@@ -418,11 +430,15 @@ export function applyCommand(state: GameState, cmd: GameCommand): GameState {
       return {
         ...state,
         scrap: state.scrap - ALCHEMY_FORGE_SCRAP,
-        currency: state.currency - ALCHEMY_FORGE_CURRENCY,
+        currency: state.currency - forgeCurrencyCost,
         materials: subtractMaterials(state, ALCHEMY_FORGE_MATERIALS),
         inventory: [...state.inventory, result],
         rngState,
       };
+    }
+    case "BUY_PERIMETER_NODE": {
+      const result = tryBuyPerimeterNode(state, cmd.nodeId);
+      return result.ok ? result.state : state;
     }
   }
 }

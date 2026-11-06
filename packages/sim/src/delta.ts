@@ -10,6 +10,7 @@ export type GameStateDelta = {
   materials?: GameState["materials"];
   baseCoreHp?: number;
   baseCoreMaxHp?: number;
+  perimeterUnlocked?: GameState["perimeterUnlocked"];
   combat?: GameState["combat"];
   inventory?: GameState["inventory"];
   survivors?: SurvivorState[];
@@ -48,6 +49,11 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
     }
   }
 
+  if (JSON.stringify(prev.perimeterUnlocked) !== JSON.stringify(next.perimeterUnlocked)) {
+    delta.perimeterUnlocked = next.perimeterUnlocked;
+    changed = true;
+  }
+
   if (JSON.stringify(prev.combat) !== JSON.stringify(next.combat)) {
     delta.combat = next.combat;
     changed = true;
@@ -78,6 +84,7 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
     materials: delta.materials ?? state.materials,
     baseCoreHp: delta.baseCoreHp ?? state.baseCoreHp,
     baseCoreMaxHp: delta.baseCoreMaxHp ?? state.baseCoreMaxHp,
+    perimeterUnlocked: delta.perimeterUnlocked ?? state.perimeterUnlocked,
     combat: delta.combat !== undefined ? delta.combat : state.combat,
     inventory: delta.inventory ?? state.inventory,
     survivors: delta.survivors ?? state.survivors,

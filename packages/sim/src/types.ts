@@ -29,6 +29,10 @@ export type BaseUpgrades = Record<
   number
 >;
 
+export type PerimeterUnlocked = Partial<
+  Record<import("./constants.js").PerimeterNodeId, true>
+>;
+
 export type WaveCombat = {
   zombiesRemaining: number;
   zombiesMax: number;
@@ -64,6 +68,8 @@ export type GameState = {
   combat: WaveCombat | null;
   inventory: GearItem[];
   totalKills: number;
+  /** Directed acyclic perimeter upgrades (radio relays, fence lights, …). */
+  perimeterUnlocked: PerimeterUnlocked;
   /** Times the player has Reborn (prestige stacks). */
   rebornCount: number;
   /** Lifetime currency acquired (starting grants, kills, generator, Reborn payout). */
