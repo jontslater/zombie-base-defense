@@ -316,6 +316,7 @@ export function normalizeGameState(raw: unknown): GameState {
     campaignHighestClearedKey,
     currency: Math.max(0, Math.floor(num(o.currency, 0))),
     scrap: Math.max(0, Math.floor(num(o.scrap, 0))),
+    gems: Math.max(0, Math.floor(num(o.gems, 0))),
     materials: normalizeMaterials(o.materials),
     baseCoreHp,
     baseCoreMaxHp,

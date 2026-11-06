@@ -294,3 +294,67 @@ button.selected {
   margin: 8px 0 0;
   line-height: 1.35;
 }
+
+.raid-report-root {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 20, 0.82);
+  padding: 8px;
+}
+
+.raid-report-root.hidden {
+  display: none;
+}
+
+.raid-report-card {
+  width: min(360px, 100%);
+  max-height: min(420px, 100%);
+  overflow-y: auto;
+  background: #121820;
+  border: 1px solid #2a3544;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.raid-report-card h2 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  color: #3d8bfd;
+}
+
+.raid-report-sub {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.raid-report-lines {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #e8eef5;
+}
+
+.raid-report-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.raid-report-actions button {
+  background: #2a3544;
+  color: #e8eef5;
+  border: 1px solid #3d8bfd;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}

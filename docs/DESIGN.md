@@ -72,7 +72,7 @@ Our **zombie base-defense** skin maps these pillars to **survivors vs waves**, *
 1. **Readable strip** — at a glance: wave pressure, core health, currency, combat tempo.
 2. **Deterministic simulation** — `@zbd/sim` remains the source of truth; UI is a renderer.
 3. **Expandable panel** — gear, upgrades, co-op, and future “Cube-like” systems live here, not in the strip.
-4. **Fair offline** — bounded catch-up consistent with design (today: tick advance with cap — see `offline.ts`; evolving toward TBH-style **reward tables** is backlog).
+4. **Fair offline** — TBH-style **raid report**: deterministic per-minute rewards scaled from `campaignHighestClearedKey` (stage + difficulty tier), **8h** accrual cap extended by unlocked **perimeter** nodes, anti–clock-skew / long-absence caps, and a return overlay (see `offlineRewards.ts`, `apps/desktop` raid report).
 5. **Modest scope explosion** — depth should come from **data + systems**, not from abandoning the strip constraint.
 
 ## Current simulation snapshot (Milestone 2+)

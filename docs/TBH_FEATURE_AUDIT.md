@@ -117,7 +117,7 @@ Each bullet names the system and concrete details where we found them. URLs are 
 | **Base upgrades** | `wall`, `turret`, `generator`, `workbench` — `commands.ts` |
 | **Workbench** | Enhance (scrap) and reroll (scrap + currency) — `commands.ts` |
 | **Waves** | Infinite wave number; boss every `BOSS_EVERY_N_WAVES` (10) — `waves.ts` |
-| **Offline** | On load, advance sim ticks up to **8h** cap — `offline.ts`, `runtime.ts` |
+| **Offline** | On load, **raid report** reward table (not raw tick sim) up to **8h** cap + perimeter extend — `offlineRewards.ts`, `offline.ts`, `runtime.ts` |
 | **Reborn (prestige)** | `REBORN` command when idle and `wave >= REBORN_MIN_WAVE`; increments `rebornCount`; resets run with payout; **income/DPS** multipliers stack — `commands.ts` (`applyReborn`), `constants.ts`, `tick.ts`, `waves.ts`; tests `reborn.test.ts`; smoke `pnpm smoke:sim` → `packages/sim/scripts/smoke-reborn.ts` |
 | **Co-op** | WebSocket relay; invite code; host/guest commands; guest survivor spawn — `apps/desktop`, `apps/relay`, `packages/sim/coop.ts` |
 | **Shell** | Tauri + Phaser **400×80** strip; expandable HTML panel — `stripScene.ts`, `main.ts` |
@@ -141,7 +141,7 @@ Each bullet names the system and concrete details where we found them. URLs are 
 | Skills | 100+ skills + passives | TBD | 4 passive nodes | No active skills, no rotations | **Perks:** grenade volley, drone heal, barricade |
 | Character level | 1–100 table | TBD | Implicit (stats + gear) | No XP/level curve | **Survivor rank** + XP from waves |
 | Prestige/rebirth | None per TBH wiki (no prestige) | Reborn prestige (ZBD) | **Shipped:** `REBORN` + `rebornCount` + stacking bonuses | TBH has no analogue — ZBD **differs by design**; still far from TBH’s **rune tree** meta width | Narrative **exodus convoy** reset with **memorial stacks** (keep distinct from TBH so players aren’t confused) |
-| Offline | Gated + stage-scaled table | TBD | Raw sim tick catch-up | Not TBH-like reward table | **Raid report** from highest **cleared sector** |
+| Offline | Gated + stage-scaled table | TBD | **Raid report** (table, capped) | Partial parity — tuning ongoing | **Raid report** from highest **cleared sector** |
 | Pets | 8 pets, conditional unlocks | Not specified | None | No passive pet grid | **Companions:** dog alarm, drone scout |
 | Achievements | Steam-set (~56) | Disclosure for AI art | None | No achievement layer | **Comms log milestones** (local + optional cloud later) |
 | Trading | Steam Market | Not in north star | None | By design different | **Relay-only “supply drop”** trade later if desired |

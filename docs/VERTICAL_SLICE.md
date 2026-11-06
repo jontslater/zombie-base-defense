@@ -78,7 +78,7 @@ Every slice must respect:
 
 - Phaser strip: survivors left, zombies right, core right (`stripScene.ts`).
 - Panel: upgrades, gear UI, co-op controls (`main.ts`, `gearPanel.ts`).
-- Sim: waves, bosses every 10 waves, loot, workbench, offline tick catch-up, **Reborn** (`tick.ts`, `waves.ts`, `offline.ts`, `commands.ts`).
+- Sim: waves, bosses every 10 waves, loot, workbench, TBH-style **offline raid report** (capped accrual), **Reborn** (`tick.ts`, `waves.ts`, `offlineRewards.ts`, `offline.ts`, `commands.ts`).
 - Relay: invite/redeem, host snapshots/deltas (`apps/relay` + `coopSession.ts`).
 
 **Out of scope vs TBH depth:** no act map, no meta tree, no item sockets, no synthesis loop beyond workbench v1, minimal skills.

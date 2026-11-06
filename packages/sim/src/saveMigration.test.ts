@@ -12,6 +12,7 @@ describe("save migration v7 → v8 survivor roles/skills", () => {
       campaignHighestClearedKey: 1,
       currency: 10,
       scrap: 0,
+      gems: 0,
       materials: {
         alloy: 0,
         battery: 0,

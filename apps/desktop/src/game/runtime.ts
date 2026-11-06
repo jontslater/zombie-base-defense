@@ -1,6 +1,7 @@
 import {
   type BaseUpgradeId,
   type GameState,
+  type OfflineRaidReport,
   applyOfflineProgress,
   createInitialState,
   dispatch,
@@ -40,6 +41,8 @@ export type GameRuntime = {
   inCoopRoom: boolean;
   isCoopHost: boolean;
   assignedSurvivorId: string | null;
+  /** Populated once when a save loads with meaningful away time. */
+  offlineRaidReport: OfflineRaidReport | null;
 };
 
 export function newRuntime(seed?: number): GameRuntime {
@@ -52,6 +55,7 @@ export function newRuntime(seed?: number): GameRuntime {
     inCoopRoom: false,
     isCoopHost: false,
     assignedSurvivorId: null,
+    offlineRaidReport: null,
   };
 }
 
@@ -61,7 +65,7 @@ export async function loadRuntime(): Promise<GameRuntime> {
   if (!raw) return newRuntime();
   try {
     const { state, savedAtMs } = loadFromJson(raw);
-    const withOffline = applyOfflineProgress(state, savedAtMs, now);
+    const { state: withOffline, report } = applyOfflineProgress(state, savedAtMs, now);
     return {
       state: withOffline,
       playerId: `local-${savedAtMs}`,
@@ -70,6 +74,7 @@ export async function loadRuntime(): Promise<GameRuntime> {
       inCoopRoom: false,
       isCoopHost: false,
       assignedSurvivorId: null,
+      offlineRaidReport: report,
     };
   } catch {
     return newRuntime();
