@@ -12,6 +12,7 @@ import {
   validateGuestCommand,
   type GameCommand,
 } from "./index.js";
+import { testGear } from "./testGear.js";
 
 describe("co-op join scheduling", () => {
   it("schedules on next 5s boundary", () => {
@@ -42,7 +43,7 @@ describe("co-op disconnect grace", () => {
           controllerId: "guest-1",
           aiControlUntilTick: 100,
           gear: {
-            weapon: { id: "w1", slot: "weapon", rarity: "Rare", power: 10 },
+            weapon: testGear({ id: "w1", slot: "weapon", rarity: "Rare", power: 10 }),
           },
         },
       ],
@@ -89,7 +90,7 @@ describe("guest command validation", () => {
     let state = createInitialState(5);
     state = {
       ...state,
-      inventory: [{ id: "i1", slot: "weapon", rarity: "Common", power: 5 }],
+      inventory: [testGear({ id: "i1", slot: "weapon", rarity: "Common", power: 5 })],
       survivors: [{ ...state.survivors[0]!, controllerId: "guest-1", id: "surv-guest" }],
     };
     const cmd: GameCommand = {
@@ -123,7 +124,7 @@ describe("workbench commands", () => {
       survivors: [
         {
           ...state.survivors[0]!,
-          gear: { weapon: { id: "w", slot: "weapon", rarity: "Common", power: 4 } },
+          gear: { weapon: testGear({ id: "w", slot: "weapon", rarity: "Common", power: 4 }) },
         },
       ],
     };

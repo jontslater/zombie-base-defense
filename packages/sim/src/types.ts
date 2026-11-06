@@ -1,10 +1,25 @@
 export type Materials = Record<import("./constants.js").MaterialId, number>;
 
+export type GemItem = {
+  id: string;
+  kind: import("./constants.js").GemKind;
+  tier: number;
+};
+
+/** Affix line: small typed bonus (decoration analogue). */
+export type GearAffix = {
+  id: import("./constants.js").AffixId;
+  value: number;
+};
+
 export type GearItem = {
   id: string;
   slot: import("./constants.js").GearSlot;
   rarity: import("./constants.js").Rarity;
   power: number;
+  /** Socket slots; length from rarity; null = empty. */
+  sockets: (GemItem | null)[];
+  affixes: GearAffix[];
 };
 
 export type SurvivorState = {
@@ -75,6 +90,8 @@ export type GameState = {
   survivors: SurvivorState[];
   combat: WaveCombat | null;
   inventory: GearItem[];
+  /** Loose gems (combine, socketing). */
+  gemInventory: GemItem[];
   totalKills: number;
   /** Directed acyclic perimeter upgrades (radio relays, fence lights, …). */
   perimeterUnlocked: PerimeterUnlocked;

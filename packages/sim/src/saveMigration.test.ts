@@ -41,6 +41,7 @@ describe("save migration v7 → v8 survivor roles/skills", () => {
       ],
       combat: null,
       inventory: [],
+      gemInventory: [],
       totalKills: 0,
       rebornCount: 0,
       lifetimeCurrencyEarned: 10,

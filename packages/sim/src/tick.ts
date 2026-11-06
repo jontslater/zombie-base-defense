@@ -5,17 +5,21 @@ import {
   stageKeyFromCampaignWave,
 } from "./campaign.js";
 import {
+  GEM_DROP_CHANCE_BOSS,
+  GEM_KINDS,
   TICKS_PER_SECOND,
   WAVE_PENALTY_ON_CORE_FALL,
   rebornIncomeMultiplier,
 } from "./constants.js";
+import { makeGemItem } from "./gearFactory.js";
+import { partyScrapBonusPerKill } from "./gearBonuses.js";
 import { applyCommand, type GameCommand } from "./commands.js";
 import {
   perimeterCoreMitigationMult,
   perimeterCurrencyIncomeMult,
   perimeterTrapFrequencyDivisorBonus,
 } from "./perimeter.js";
-import { withRng } from "./rng.js";
+import { rollInt, withRng } from "./rng.js";
 import type { GameState } from "./types.js";
 import { buildWaveCombat, rollLoot, startWave, survivorDps } from "./waves.js";
 import {
@@ -83,17 +87,34 @@ export function simTick(state: GameState): GameState {
     const killPts = 2 + Math.floor(s.wave * 0.5);
     const killBonus = s.survivors.reduce((acc, sv) => acc + survivorKillCurrencySkillBonus(sv), 0);
     const killCurrencyBase = Math.floor(killPts * (1 + killBonus));
+    const scrapExtra = partyScrapBonusPerKill(s);
     s = grantCurrency(
       {
         ...s,
         totalKills: s.totalKills + 1,
-        scrap: s.scrap + 1,
+        scrap: s.scrap + 1 + scrapExtra,
       },
       killCurrencyBase,
     );
-    const loot = rollLoot(s, s.wave);
+    const loot = rollLoot(s);
     s = loot.state;
     if (loot.item) s = { ...s, inventory: [...s.inventory, loot.item] };
+
+    if (combat.isBoss) {
+      const gemDrop = withRng(s, (rng) => {
+        if (rng.next() >= GEM_DROP_CHANCE_BOSS) return null;
+        const kind = GEM_KINDS[rollInt(rng, 0, GEM_KINDS.length - 1)]!;
+        return makeGemItem({
+          id: `gem-${s.tick}-${rollInt(rng, 1000, 9999)}`,
+          kind,
+          tier: 1,
+        });
+      });
+      s = { ...s, rngState: gemDrop.rngState };
+      if (gemDrop.result) {
+        s = { ...s, gemInventory: [...s.gemInventory, gemDrop.result] };
+      }
+    }
 
     const spChance = Math.min(
       0.95,

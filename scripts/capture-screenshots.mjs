@@ -12,7 +12,7 @@ await page.goto("http://localhost:4173", { waitUntil: "networkidle" });
 
 await page.evaluate(() => {
   const seed = {
-    version: 8,
+    version: 9,
     savedAtMs: Date.now(),
     state: {
       tick: 120,
@@ -42,7 +42,16 @@ await page.evaluate(() => {
           damage: 12,
           skillPoints: 3,
           skills: { hu_precision: 2 },
-          gear: { weapon: { id: "w1", slot: "weapon", rarity: "Rare", power: 14 } },
+          gear: {
+            weapon: {
+              id: "w1",
+              slot: "weapon",
+              rarity: "Rare",
+              power: 14,
+              sockets: [{ id: "rg1", kind: "ruby", tier: 1 }],
+              affixes: [{ id: "sharp", value: 4 }],
+            },
+          },
           stance: "aggressive",
           target: "nearest",
           controllerId: null,
@@ -73,8 +82,27 @@ await page.evaluate(() => {
         bossHpMultiplier: 1,
       },
       inventory: [
-        { id: "i1", slot: "armor", rarity: "Epic", power: 11 },
-        { id: "i2", slot: "trinket", rarity: "Uncommon", power: 6 },
+        {
+          id: "i1",
+          slot: "armor",
+          rarity: "Epic",
+          power: 11,
+          sockets: [null],
+          affixes: [{ id: "reinforced", value: 6 }],
+        },
+        {
+          id: "i2",
+          slot: "trinket",
+          rarity: "Uncommon",
+          power: 6,
+          sockets: [],
+          affixes: [],
+        },
+      ],
+      gemInventory: [
+        { id: "g1", kind: "ruby", tier: 1 },
+        { id: "g2", kind: "sapphire", tier: 1 },
+        { id: "g3", kind: "topaz", tier: 2 },
       ],
       totalKills: 22,
       rebornCount: 0,
@@ -91,12 +119,20 @@ await page.click("#game-root");
 await page.waitForTimeout(400);
 
 await page.screenshot({ path: path.join(outDir, "strip-layout.png") });
+await page.screenshot({
+  path: path.join(outDir, "strip-400x80.png"),
+  clip: { x: 0, y: 0, width: 400, height: 80 },
+});
 
 await page.evaluate(() => {
   document.getElementById("campaign-grid-root")?.scrollIntoView({ block: "nearest" });
 });
 await page.waitForTimeout(200);
 await page.screenshot({ path: path.join(outDir, "campaign-panel.png") });
+
+await page.click('button[data-subtab="workbench"]');
+await page.waitForTimeout(200);
+await page.screenshot({ path: path.join(outDir, "workbench-gems-sockets.png") });
 
 await page.click('button[data-subtab="gear"]');
 await page.waitForTimeout(200);

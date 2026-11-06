@@ -35,8 +35,8 @@ export const TICKS_PER_SECOND = 10;
 /** Max offline catch-up (8 hours). */
 export const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
 
-/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter grid meta; v8: survivor roles + ranked skill trees. */
-export const SAVE_VERSION = 8;
+/** v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter; v8: survivor roles + ranked skills; v9: gear sockets/gems/affixes. */
+export const SAVE_VERSION = 9;
 
 export const BOSS_EVERY_N_WAVES = 10;
 
@@ -146,6 +146,29 @@ export const ALCHEMY_FORGE_MATERIALS: Record<MaterialId, number> = {
   fiber: 0,
   wiring: 1,
 };
+
+/** Socket gems: combine three of same kind+tier → one tier+1. */
+export const GEM_KINDS = ["ruby", "sapphire", "topaz"] as const;
+export type GemKind = (typeof GEM_KINDS)[number];
+
+export const GEM_COMBINE_INPUT_COUNT = 3;
+
+/** Boss kills: extra chance to roll a tier-1 gem into `gemInventory`. */
+export const GEM_DROP_CHANCE_BOSS = 0.12;
+
+/** Scrap + mats to add one empty socket to gear (max 2 sockets). */
+export const SOCKET_FORGE_SCRAP = 4;
+export const SOCKET_FORGE_MATERIALS: Record<MaterialId, number> = {
+  alloy: 1,
+  battery: 0,
+  compound: 1,
+  fiber: 1,
+  wiring: 0,
+};
+
+/** Small typed modifiers on high-rarity gear. */
+export const AFFIX_IDS = ["sharp", "reinforced", "hunter", "salvager"] as const;
+export type AffixId = (typeof AFFIX_IDS)[number];
 
 export const RARITY_COLORS: Record<Rarity, string> = {
   Common: "#9aa5b1",

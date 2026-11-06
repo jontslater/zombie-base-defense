@@ -13,6 +13,7 @@ export type GameStateDelta = {
   perimeterUnlocked?: GameState["perimeterUnlocked"];
   combat?: GameState["combat"];
   inventory?: GameState["inventory"];
+  gemInventory?: GameState["gemInventory"];
   survivors?: SurvivorState[];
   totalKills?: number;
   rebornCount?: number;
@@ -62,6 +63,10 @@ export function diffGameState(prev: GameState, next: GameState): GameStateDelta 
     delta.inventory = next.inventory;
     changed = true;
   }
+  if (JSON.stringify(prev.gemInventory) !== JSON.stringify(next.gemInventory)) {
+    delta.gemInventory = next.gemInventory;
+    changed = true;
+  }
   if (JSON.stringify(prev.survivors) !== JSON.stringify(next.survivors)) {
     delta.survivors = next.survivors;
     changed = true;
@@ -87,6 +92,7 @@ export function applyGameStateDelta(state: GameState, delta: GameStateDelta): Ga
     perimeterUnlocked: delta.perimeterUnlocked ?? state.perimeterUnlocked,
     combat: delta.combat !== undefined ? delta.combat : state.combat,
     inventory: delta.inventory ?? state.inventory,
+    gemInventory: delta.gemInventory ?? state.gemInventory,
     survivors: delta.survivors ?? state.survivors,
     totalKills: delta.totalKills ?? state.totalKills,
     rebornCount: delta.rebornCount ?? state.rebornCount,

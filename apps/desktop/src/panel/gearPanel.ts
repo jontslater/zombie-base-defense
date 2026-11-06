@@ -2,6 +2,9 @@ import {
   ALCHEMY_FORGE_CURRENCY,
   ALCHEMY_FORGE_MATERIALS,
   ALCHEMY_FORGE_SCRAP,
+  GEM_COMBINE_INPUT_COUNT,
+  SOCKET_FORGE_MATERIALS,
+  SOCKET_FORGE_SCRAP,
   campaignWaveNumberFromStageKey,
   GEAR_SLOTS,
   MATERIAL_IDS,
@@ -19,11 +22,14 @@ import {
   WORKBENCH_REROLL_CURRENCY,
   WORKBENCH_REROLL_SCRAP,
   perimeterSecondForgeUnlocked,
+  maxSocketsForRarity,
+  materialsCanAfford,
   tryBuyPerimeterNode,
   canSpendSkill,
   skillPointCostForNextRank,
   skillRank,
   skillsForRole,
+  type GearItem,
   type GearSlot,
   type SkillNodeDef,
   type SkillNodeId,
@@ -34,6 +40,15 @@ import {
 import type { GameRuntime, CommandInput } from "../game/runtime";
 import { gearPowerForSurvivor, gearStatDelta } from "../game/gearStats";
 import { appendSlotIcon } from "./gearIcons";
+function formatGearBrief(item: GearItem): string {
+  const aff =
+    item.affixes.length > 0 ? ` · ${item.affixes.map((a) => `${a.id}+${a.value}`).join(", ")}` : "";
+  const sk =
+    item.sockets.length > 0
+      ? ` · sockets: ${item.sockets.map((g) => (g ? `${g.kind} T${g.tier}` : "empty")).join(" | ")}`
+      : "";
+  return `${item.rarity} +${item.power}${aff}${sk}`;
+}
 
 export type PanelActions = {
   applyCommand: (cmd: CommandInput) => void;
@@ -72,7 +87,9 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
   });
 
   const synthesisPick = new Set<number>();
+  const gemCombinePick = new Set<number>();
   let lastInventorySig = "";
+  let lastGemSig = "";
 
   const render = () => {
     const rt = getRuntime();
@@ -81,9 +98,14 @@ export function mountGearPanel(root: HTMLElement, getRuntime: () => GameRuntime,
       synthesisPick.clear();
       lastInventorySig = invSig;
     }
+    const gemSig = rt.state.gemInventory.map((g) => g.id).join("|");
+    if (gemSig !== lastGemSig) {
+      gemCombinePick.clear();
+      lastGemSig = gemSig;
+    }
     renderGearTab(gearEl, rt, actions);
     renderSkillsTab(skillsEl, rt, actions);
-    renderWorkbenchTab(benchEl, rt, actions, synthesisPick);
+    renderWorkbenchTab(benchEl, rt, actions, synthesisPick, gemCombinePick);
     renderPerimeterTab(perimeterEl, rt, actions);
   };
 
@@ -145,8 +167,48 @@ function renderGearTab(el: HTMLElement, rt: GameRuntime, actions: PanelActions):
       const span = document.createElement("span");
       span.className = "gear-item";
       span.style.color = RARITY_COLORS[item.rarity];
-      span.textContent = `${item.rarity} +${item.power}`;
+      span.textContent = formatGearBrief(item);
       row.appendChild(span);
+      const sockRow = document.createElement("div");
+      sockRow.className = "socket-row";
+      item.sockets.forEach((g, si) => {
+        const lab = document.createElement("span");
+        lab.className = "muted";
+        lab.textContent = g ? `${g.kind} T${g.tier}` : `[${si}] empty`;
+        sockRow.appendChild(lab);
+        if (g) {
+          const pull = document.createElement("button");
+          pull.type = "button";
+          pull.textContent = "Pull gem";
+          pull.addEventListener("click", () =>
+            actions.applyCommand({
+              type: "UNSOCKET_GEM",
+              survivorId: survivor.id,
+              equipSlot: slot,
+              socketIndex: si,
+            }),
+          );
+          sockRow.appendChild(pull);
+        } else if (rt.state.gemInventory.length > 0) {
+          for (let gi = 0; gi < rt.state.gemInventory.length; gi++) {
+            const gem = rt.state.gemInventory[gi]!;
+            const ins = document.createElement("button");
+            ins.type = "button";
+            ins.textContent = `+${gem.kind} T${gem.tier}`;
+            ins.addEventListener("click", () =>
+              actions.applyCommand({
+                type: "SOCKET_GEM",
+                survivorId: survivor.id,
+                equipSlot: slot,
+                gemInventoryIndex: gi,
+                socketIndex: si,
+              }),
+            );
+            sockRow.appendChild(ins);
+          }
+        }
+      });
+      row.appendChild(sockRow);
       const unequip = document.createElement("button");
       unequip.type = "button";
       unequip.textContent = "Unequip";
@@ -315,6 +377,7 @@ function renderWorkbenchTab(
   rt: GameRuntime,
   actions: PanelActions,
   synthesisPick: Set<number>,
+  gemCombinePick: Set<number>,
 ): void {
   el.innerHTML = "";
   const lvl = rt.state.upgrades.workbench;
@@ -334,6 +397,78 @@ function renderWorkbenchTab(
   mats.className = "muted materials-line";
   mats.textContent = `Materials: ${MATERIAL_IDS.map((id) => `${id} ${rt.state.materials[id]}`).join(" · ")}`;
   el.appendChild(mats);
+
+  const gemsHead = document.createElement("h3");
+  gemsHead.textContent = "Gem bag";
+  el.appendChild(gemsHead);
+  const gemsLine = document.createElement("p");
+  gemsLine.className = "muted";
+  gemsLine.textContent =
+    rt.state.gemInventory.length === 0
+      ? "No loose gems — boss kills can drop tier‑1 rubies, sapphires, or topazes."
+      : `${rt.state.gemInventory.length} in bag (pick below for combine)`;
+  el.appendChild(gemsLine);
+
+  const gemBag = document.createElement("div");
+  gemBag.className = "inventory-list gem-bag";
+  rt.state.gemInventory.forEach((gem, gi) => {
+    const row = document.createElement("div");
+    row.className = "inventory-row";
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.title = "Select for 3→1 gem combine";
+    chk.checked = gemCombinePick.has(gi);
+    chk.addEventListener("change", () => {
+      if (chk.checked) {
+        if (gemCombinePick.size < GEM_COMBINE_INPUT_COUNT) gemCombinePick.add(gi);
+        else chk.checked = false;
+      } else {
+        gemCombinePick.delete(gi);
+      }
+    });
+    row.appendChild(chk);
+    const lab = document.createElement("span");
+    lab.textContent = `${gem.kind} tier ${gem.tier}`;
+    row.appendChild(lab);
+    gemBag.appendChild(row);
+  });
+  if (rt.state.gemInventory.length === 0) {
+    gemBag.textContent = "";
+  }
+  el.appendChild(gemBag);
+
+  for (const i of [...gemCombinePick]) {
+    if (i < 0 || i >= rt.state.gemInventory.length) gemCombinePick.delete(i);
+  }
+  const pickedGems = [...gemCombinePick]
+    .map((i) => rt.state.gemInventory[i])
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
+  const sameGemKind =
+    pickedGems.length === GEM_COMBINE_INPUT_COUNT &&
+    pickedGems.every((g) => g.kind === pickedGems[0]?.kind && g.tier === pickedGems[0]?.tier);
+  const canCombineGems =
+    sameGemKind && (pickedGems[0]?.tier ?? 0) < 9 && rt.state.upgrades.workbench > 0;
+  const combineGems = document.createElement("button");
+  combineGems.type = "button";
+  combineGems.disabled = !canCombineGems;
+  combineGems.textContent = `Combine gems (${gemCombinePick.size}/${GEM_COMBINE_INPUT_COUNT}) → next tier`;
+  combineGems.addEventListener("click", () => {
+    if (gemCombinePick.size !== GEM_COMBINE_INPUT_COUNT) return;
+    actions.applyCommand({ type: "GEM_COMBINE", gemInventoryIndices: [...gemCombinePick] });
+    gemCombinePick.clear();
+  });
+  el.appendChild(combineGems);
+
+  const sockTitle = document.createElement("h3");
+  sockTitle.textContent = "Socket forge (alchemy bench)";
+  el.appendChild(sockTitle);
+  const sockMat = MATERIAL_IDS.filter((id) => SOCKET_FORGE_MATERIALS[id] > 0)
+    .map((id) => `${id}×${SOCKET_FORGE_MATERIALS[id]}`)
+    .join(", ");
+  const sockP = document.createElement("p");
+  sockP.className = "muted";
+  sockP.textContent = `Add one empty socket to gear (max by rarity): ${SOCKET_FORGE_SCRAP} scrap + ${sockMat}`;
+  el.appendChild(sockP);
 
   const alchemyTitle = document.createElement("h3");
   alchemyTitle.textContent = "Alchemy forge";
@@ -447,8 +582,56 @@ function renderWorkbenchTab(
 
     const label = document.createElement("span");
     label.style.color = RARITY_COLORS[item.rarity];
-    label.textContent = `${item.rarity} ${item.slot} +${item.power}`;
+    label.textContent = `${item.rarity} ${item.slot} ${formatGearBrief(item)}`;
     row.appendChild(label);
+    const maxSoc = maxSocketsForRarity(item.rarity);
+    const canForgeSocket =
+      item.sockets.length < maxSoc &&
+      rt.state.scrap >= SOCKET_FORGE_SCRAP &&
+      materialsCanAfford(rt.state, SOCKET_FORGE_MATERIALS);
+    const socketForge = document.createElement("button");
+    socketForge.type = "button";
+    socketForge.textContent = "Add socket";
+    socketForge.disabled = !canForgeSocket;
+    socketForge.title = canForgeSocket ? "" : `Max ${maxSoc} sockets for ${item.rarity} or need scrap/mats`;
+    socketForge.addEventListener("click", () =>
+      actions.applyCommand({ type: "SOCKET_FORGE", inventoryIndex: index }),
+    );
+    row.appendChild(socketForge);
+    const sockInv = document.createElement("div");
+    sockInv.className = "socket-row";
+    item.sockets.forEach((g, si) => {
+      const bit = document.createElement("span");
+      bit.className = "muted";
+      bit.textContent = g ? `${g.kind} T${g.tier}` : `[${si}]`;
+      sockInv.appendChild(bit);
+      if (g) {
+        const pull = document.createElement("button");
+        pull.type = "button";
+        pull.textContent = "Pull";
+        pull.addEventListener("click", () =>
+          actions.applyCommand({ type: "UNSOCKET_GEM", inventoryGearIndex: index, socketIndex: si }),
+        );
+        sockInv.appendChild(pull);
+      } else {
+        for (let gi = 0; gi < rt.state.gemInventory.length; gi++) {
+          const gem = rt.state.gemInventory[gi]!;
+          const ins = document.createElement("button");
+          ins.type = "button";
+          ins.textContent = `+${gem.kind} T${gem.tier}`;
+          ins.addEventListener("click", () =>
+            actions.applyCommand({
+              type: "SOCKET_GEM",
+              inventoryGearIndex: index,
+              gemInventoryIndex: gi,
+              socketIndex: si,
+            }),
+          );
+          sockInv.appendChild(ins);
+        }
+      }
+    });
+    row.appendChild(sockInv);
     const salvage = document.createElement("button");
     salvage.type = "button";
     salvage.title = "Break into crafting materials";

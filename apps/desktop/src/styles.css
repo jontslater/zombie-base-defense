@@ -162,6 +162,21 @@ button:hover {
   gap: 6px;
 }
 
+.socket-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding-left: 78px;
+  font-size: 0.65rem;
+}
+
+.gem-bag {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
 .slot-label {
   display: inline-flex;
   align-items: center;

@@ -162,7 +162,7 @@ function refreshPanel() {
     `Encounter wave ${s.wave} · Tick ${s.tick}`,
     `Currency ${s.currency} · Scrap ${s.scrap}`,
     `Materials: ${matLine}`,
-    `Kills ${s.totalKills} · Inventory ${s.inventory.length}`,
+    `Kills ${s.totalKills} · Inv ${s.inventory.length} · Gems ${s.gemInventory.length}`,
     `Survivors: ${s.survivors.map((x) => x.name).join(", ")}`,
   ]
     .map((line) => `<div>${line}</div>`)

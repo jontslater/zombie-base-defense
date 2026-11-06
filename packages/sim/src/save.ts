@@ -9,6 +9,7 @@ import {
   campaignWaveNumberFromStageKey,
   stageKeyFromCampaignWave,
 } from "./campaign.js";
+import { clampGem, sanitizeGearItem } from "./gearModel.js";
 import { normalizeGameState } from "./normalize.js";
 import type { GameState, SaveEnvelope } from "./types.js";
 import {
@@ -20,6 +21,19 @@ import {
 
 function emptyMaterials(): GameState["materials"] {
   return Object.fromEntries(MATERIAL_IDS.map((id) => [id, 0])) as GameState["materials"];
+}
+
+/** v9: gear sockets, affixes, gem bag (TBH-style layering). */
+function migrateGearToV9(state: GameState): void {
+  if (!Array.isArray(state.gemInventory)) state.gemInventory = [];
+  state.gemInventory = state.gemInventory.map(clampGem);
+  state.inventory = state.inventory.map(sanitizeGearItem);
+  state.survivors = state.survivors.map((s) => ({
+    ...s,
+    gear: Object.fromEntries(
+      Object.entries(s.gear).map(([slot, g]) => [slot, g ? sanitizeGearItem(g) : g]),
+    ) as typeof s.gear,
+  }));
 }
 
 export function createInitialState(seed = 12345): GameState {
@@ -74,6 +88,7 @@ export function createInitialState(seed = 12345): GameState {
     ],
     combat: null,
     inventory: [],
+    gemInventory: [],
     totalKills: 0,
     rebornCount: 0,
     lifetimeCurrencyEarned: INITIAL_CURRENCY,
@@ -182,6 +197,7 @@ function migrateSurvivorsToRoles(state: GameState): void {
  * Chained migrations: capture `prevVersion` before bumping so steps keyed to older envelope versions
  * (e.g. campaign grid at v5) still run. Structural coercion for partial JSON is v6+.
  * v8: survivor roles + per-role ranked skill trees (replaces flat boolean lattice).
+ * v9: gear sockets, gems, affix lines; `gemInventory` on save state.
  */
 function migrateSave(env: SaveEnvelope): void {
   const prevVersion = env.version;
@@ -260,6 +276,10 @@ function migrateSave(env: SaveEnvelope): void {
     env.state.currentStageKey = stageKeyFromCampaignWave(wClamped);
   }
   env.state.wave = campaignWaveNumberFromStageKey(env.state.currentStageKey);
+
+  if (prevVersion < 9) {
+    migrateGearToV9(env.state);
+  }
 }
 
 export function saveToJson(state: GameState, savedAtMs: number): string {
