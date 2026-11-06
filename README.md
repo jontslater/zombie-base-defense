@@ -65,6 +65,15 @@ Includes `@zbd/sim` (waves, loot, co-op join/disconnect, workbench), `@zbd/relay
 | `apps/relay` | Node WebSocket relay (`/health`, Railway-ready) |
 | `assets/` | Kenney CC0 sprites, UI, audio + `ASSETS.md` |
 
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | North star, pitch, ART_RULES, Reborn, TBH depth target |
+| [`docs/VERTICAL_SLICE.md`](docs/VERTICAL_SLICE.md) | Milestone slices vs TBH parity |
+| [`docs/AGENT_BRIEFS.md`](docs/AGENT_BRIEFS.md) | PR-sized briefs (Round 2+ proposed) |
+| [`docs/TBH_FEATURE_AUDIT.md`](docs/TBH_FEATURE_AUDIT.md) | TBH system inventory + gap table vs this repo |
+
 ## Relay on Railway
 
 See [`apps/relay/README.md`](apps/relay/README.md). Build with `apps/relay/Dockerfile`; configure the Railway service health check on `/health` in the dashboard.
