@@ -33,8 +33,8 @@ TBH’s design pattern (see `docs/TBH_FEATURE_AUDIT.md`): **thin always-on view 
 
 ## Automation
 
-- **Headless smoke**: `pnpm --filter @zbd/sim smoke` runs `packages/sim/scripts/smoke-reborn.ts`—deterministic sim for scripted waves/upgrades and **one Reborn**, **exit 0** on success. Root shortcut: `pnpm smoke:sim`.
-- **CI**: that smoke **should run on every PR** in **GitHub Actions** (Lane C in `docs/AGENT_BRIEFS.md`). Today the Windows workflow (`.github/workflows/build-windows.yml`) builds the installer but does **not** yet invoke smoke—treat that as backlog unless waived.
+- **Headless smoke**: `pnpm --filter @zbd/sim smoke` runs `packages/sim/scripts/smoke-reborn.ts` (default **N = 8** waves cleared, then **one Reborn**), **exit 0** on success. Root shortcut: `pnpm smoke:sim`.
+- **CI**: `.github/workflows/pr-tests-and-smoke.yml` runs **`pnpm test`** and **`pnpm --filter @zbd/sim smoke`** on **every PR** (Linux). The Windows installer workflow remains `.github/workflows/build-windows.yml`.
 
 ## Ship checklist
 
@@ -50,7 +50,7 @@ The vertical slice is **done** when:
 1. A **human** can complete the loop above in the **desktop strip** build.
 2. **Save/load** survives restart (including Reborn state).
 3. **Invite-code co-op** works host + at least one guest on a deployed relay.
-4. The **headless smoke** runs **N** waves + **Reborn** and passes locally; **CI** runs it on PRs once Lane C lands (or is explicitly waived with reason).
+4. The **headless smoke** runs **N** waves + **Reborn** and passes in **CI on PRs** (see Automation above).
 5. Ship checklist items relevant to internal testing (**installer**, **bugs**, **disclosure draft**) are **checked or explicitly waived** with reason.
 
 ---

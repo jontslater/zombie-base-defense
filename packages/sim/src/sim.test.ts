@@ -1,18 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
+  INITIAL_CURRENCY,
   OFFLINE_CAP_MS,
   RARITIES,
+  SAVE_VERSION,
   TICKS_PER_SECOND,
   applyOfflineProgress,
   buildWaveCombat,
   computeOfflineTicks,
   createInitialState,
   loadFromJson,
+  parseSave,
   rollLoot,
   saveToJson,
   waveIsBoss,
   withRng,
 } from "./index.js";
+import { stageKeyFromCampaignWave } from "./campaign.js";
 
 describe("wave scaling", () => {
   it("increases zombie stats with wave", () => {
@@ -64,6 +68,42 @@ describe("save round-trip", () => {
     expect(loaded.state.currency).toBe(1234);
     expect(loaded.state.wave).toBe(7);
     expect(loaded.state.survivors).toHaveLength(2);
+  });
+
+  it("migrates legacy v1-ish saves with missing fields", () => {
+    const legacy = {
+      version: 1,
+      savedAtMs: 1,
+      state: {
+        tick: 10,
+        wave: 4,
+        currency: 100,
+        scrap: 2,
+        baseCoreHp: 150,
+        baseCoreMaxHp: 200,
+        upgrades: { wall: 1 },
+        survivors: [],
+        combat: null,
+        inventory: [],
+        totalKills: 3,
+        rngState: 99,
+      },
+    };
+    const env = parseSave(JSON.stringify(legacy));
+    expect(env.version).toBe(SAVE_VERSION);
+    expect(env.state.wave).toBe(4);
+    expect(env.state.survivors).toHaveLength(2);
+    expect(env.state.upgrades.generator).toBe(0);
+    expect(env.state.upgrades.wall).toBe(1);
+    expect(env.state.materials.alloy).toBe(0);
+    expect(env.state.rebornCount).toBe(0);
+    expect(env.state.lifetimeCurrencyEarned).toBe(INITIAL_CURRENCY);
+    expect(env.state.currentStageKey).toBe(stageKeyFromCampaignWave(4));
+    expect(env.state.campaignHighestClearedKey).toBeGreaterThanOrEqual(-1);
+  });
+
+  it("rejects invalid save envelopes", () => {
+    expect(() => parseSave("{}")).toThrow();
   });
 });
 
