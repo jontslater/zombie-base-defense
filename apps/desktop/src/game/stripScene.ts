@@ -32,7 +32,6 @@ export class StripScene extends Phaser.Scene {
   private prevCombatZombies = -1;
   private prevSurvivorHp: number[] = [];
   private prevCoreHp = -1;
-  private lastCurrency = 0;
   private floatLayer!: Phaser.GameObjects.Container;
 
   constructor() {
@@ -93,7 +92,6 @@ export class StripScene extends Phaser.Scene {
     this.prevCombatZombies = -1;
     this.prevSurvivorHp = [];
     this.prevCoreHp = -1;
-    this.lastCurrency = this.rt.state.currency;
   }
 
   private hash01(seed: number, salt: number): number {
@@ -389,8 +387,6 @@ export class StripScene extends Phaser.Scene {
         this.spawnDamageFloat(200, CORE_HP_BAR_Y - 6, this.prevCoreHp - state.baseCoreHp, "#ff9966");
       }
     }
-
-    this.lastCurrency = state.currency;
 
     this.prevTick = tick;
     this.prevCombatZombies = snap?.zombiesRemaining ?? -1;
