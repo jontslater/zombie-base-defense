@@ -20,8 +20,8 @@ import {
   type StripCombatFxEvent,
 } from "@zbd/sim";
 
-const ZOMBIE_TINT = 0x6ecf5a;
-const ZOMBIE_BOSS_TINT = 0xc084fc;
+const ZOMBIE_TINT = 0x8a9178;
+const ZOMBIE_BOSS_TINT = 0x9a7aac;
 
 type UnitFxState = {
   hitStopFrames: number;

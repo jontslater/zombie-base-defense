@@ -5,77 +5,85 @@ const STRIP_W = 400;
 const STRIP_H = 80;
 
 export class StripBackdrop {
-  private hillA!: Phaser.GameObjects.Image;
-  private hillB!: Phaser.GameObjects.Image;
-  private ground!: Phaser.GameObjects.Graphics;
-  private grass!: Phaser.GameObjects.Graphics;
+  private deco!: Phaser.GameObjects.Graphics;
+  private platform!: Phaser.GameObjects.Graphics;
   private vignette!: Phaser.GameObjects.Graphics;
+  private clouds!: Phaser.GameObjects.Graphics;
 
   constructor(private scene: Phaser.Scene) {}
 
   create() {
+    this.scene.add.rectangle(STRIP_W / 2, STRIP_H * 0.42, STRIP_W, STRIP_H, 0x5a8bb8, 1).setDepth(-12);
     this.scene.add
-      .rectangle(STRIP_W / 2, STRIP_H / 2, STRIP_W, STRIP_H, 0x141a22)
-      .setDepth(-10);
+      .rectangle(STRIP_W / 2, STRIP_H * 0.72, STRIP_W, STRIP_H * 0.55, 0xc4e6a8, 0.35)
+      .setDepth(-11);
 
-    this.hillA = this.scene.add
-      .image(120, STRIP_GROUND_Y - 18, "sprites", "wall")
-      .setTint(0x2d4a3a)
-      .setAlpha(0.35)
-      .setScale(1.8, 0.35)
-      .setDepth(-8);
-    this.hillB = this.scene.add
-      .image(300, STRIP_GROUND_Y - 14, "sprites", "wall")
-      .setTint(0x3a2e4a)
-      .setAlpha(0.28)
-      .setScale(2.2, 0.28)
-      .setDepth(-8);
+    this.clouds = this.scene.add.graphics().setDepth(-9);
+    this.drawClouds();
 
-    this.ground = this.scene.add.graphics().setDepth(-2);
-    this.grass = this.scene.add.graphics().setDepth(-1);
-    this.drawGroundPlane();
+    this.platform = this.scene.add.graphics().setDepth(-1);
+    this.deco = this.scene.add.graphics().setDepth(0);
+    this.drawPlatform();
 
     this.scene.add
-      .rectangle(STRIP_W / 2, STRIP_GROUND_Y - 16, STRIP_W, 34, 0x6eb6ff, 0.04)
-      .setDepth(0.5);
+      .rectangle(STRIP_W / 2, STRIP_GROUND_Y - 22, STRIP_W, 40, 0xfff0c8, 0.07)
+      .setDepth(0.4);
 
-    this.vignette = this.scene.add.graphics().setDepth(25);
+    this.vignette = this.scene.add.graphics().setDepth(26);
     this.drawVignette();
   }
 
-  private drawGroundPlane() {
-    this.ground.clear();
-    this.ground.fillStyle(0x1f1610, 1);
-    this.ground.fillRect(0, STRIP_GROUND_Y - 5, STRIP_W, STRIP_H - STRIP_GROUND_Y + 6);
-    this.ground.fillStyle(0x2a2218, 1);
-    for (let x = 0; x < STRIP_W; x += 16) {
-      this.ground.fillRect(x, STRIP_GROUND_Y, 15, 4);
-    }
-    this.ground.fillStyle(0x3d2c1c, 0.6);
-    this.ground.fillRect(0, STRIP_GROUND_Y + 4, STRIP_W, 20);
+  private drawClouds() {
+    this.clouds.clear();
+    this.clouds.fillStyle(0xf8ecd0, 0.22);
+    this.clouds.fillEllipse(90, 16, 56, 12);
+    this.clouds.fillEllipse(300, 20, 72, 14);
+    this.clouds.fillStyle(0x8ec5e8, 0.15);
+    this.clouds.fillEllipse(220, 10, 46, 10);
+  }
 
-    this.grass.clear();
-    this.grass.fillStyle(0x3d6b45, 1);
-    this.grass.fillRect(0, STRIP_GROUND_Y - 3, STRIP_W, 3);
-    this.grass.fillStyle(0x52a05b, 0.85);
-    for (let x = 0; x < STRIP_W; x += 8) {
-      this.grass.fillTriangle(x, STRIP_GROUND_Y - 3, x + 4, STRIP_GROUND_Y - 6, x + 8, STRIP_GROUND_Y - 3);
-    }
+  private drawPlatform() {
+    const top = STRIP_GROUND_Y - 6;
+    const grassH = 6;
+    const dirtH = 14;
+
+    this.platform.clear();
+    this.platform.fillStyle(0x6a4d2e, 1);
+    this.platform.fillRoundedRect(4, top + grassH - 1, STRIP_W - 8, dirtH + 8, 4);
+    this.platform.fillStyle(0x4d3822, 1);
+    this.platform.fillRect(8, top + grassH + 6, STRIP_W - 16, dirtH);
+
+    this.platform.fillStyle(0x58c454, 1);
+    this.platform.fillRoundedRect(6, top - 1, STRIP_W - 12, grassH + 2, 5);
+    this.platform.fillStyle(0x78e06e, 0.9);
+    this.platform.fillRect(6, top, STRIP_W - 12, 3);
+    this.platform.lineStyle(1, 0x98f090, 0.5);
+    this.platform.strokeRoundedRect(6, top - 1, STRIP_W - 12, grassH + 2, 5);
+
+    this.deco.clear();
+    this.deco.fillStyle(0xa0a898, 0.85);
+    this.deco.fillEllipse(48, top + 2, 5, 3);
+    this.deco.fillEllipse(210, top + 1, 6, 4);
+    this.deco.fillStyle(0xffc4e8, 0.9);
+    this.deco.fillCircle(130, top - 2, 2);
+    this.deco.fillCircle(310, top - 1, 2);
+    this.deco.fillStyle(0xffffff, 0.85);
+    this.deco.fillCircle(292, top, 2);
+    this.deco.fillStyle(0xffeeb0, 0.95);
+    this.deco.fillCircle(172, top - 3, 2);
   }
 
   private drawVignette() {
     this.vignette.clear();
-    this.vignette.fillStyle(0x000000, 0.28);
-    this.vignette.fillRect(0, 0, 28, STRIP_H);
-    this.vignette.fillRect(STRIP_W - 28, 0, 28, STRIP_H);
-    this.vignette.fillStyle(0x000000, 0.18);
-    this.vignette.fillRect(0, 0, STRIP_W, 10);
+    this.vignette.fillStyle(0x302010, 0.22);
+    this.vignette.fillRect(0, 0, 24, STRIP_H);
+    this.vignette.fillRect(STRIP_W - 24, 0, 24, STRIP_H);
+    this.vignette.fillStyle(0x302010, 0.12);
+    this.vignette.fillRect(0, 0, STRIP_W, 8);
   }
 
-  updateParallax(march01: number, sway: number) {
-    this.hillA.x = 100 + march01 * 24;
-    this.hillB.x = 280 - march01 * 18;
-    this.hillA.y = STRIP_GROUND_Y - 18 + Math.sin(sway * 0.2) * 0.5;
-    this.hillB.y = STRIP_GROUND_Y - 14 + Math.cos(sway * 0.15) * 0.5;
+  updateParallax(march01: number, _sway: number) {
+    void _sway;
+    this.clouds.x = -march01 * 18;
   }
 }

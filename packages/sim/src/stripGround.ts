@@ -2,14 +2,15 @@ import type { StripCombatSnapshot } from "./stripSnapshot.js";
 import type { SurvivorRoleId } from "./survivorRoles.js";
 
 /** Visual floor line in the 400×80 strip (feet rest here). Render-only. */
-export const STRIP_GROUND_Y = 56;
+export const STRIP_GROUND_Y = 52;
 
 /** Source pixels trimmed from the bottom of 64×64 atlas frames (empty padding). */
 export const STRIP_FOOT_TRIM_SOURCE_PX = 8;
 
-export const STRIP_SURVIVOR_SCALE = 0.58;
-export const STRIP_ZOMBIE_SCALE = 0.56;
-export const STRIP_ZOMBIE_BOSS_SCALE = 0.68;
+/** ~30–32px tall units in an 80px strip (64px source frames). */
+export const STRIP_SURVIVOR_SCALE = 0.5;
+export const STRIP_ZOMBIE_SCALE = 0.5;
+export const STRIP_ZOMBIE_BOSS_SCALE = 0.62;
 export const STRIP_STRUCTURE_SCALE = 0.44;
 
 /** Bottom anchor Y so visible feet sit on `STRIP_GROUND_Y`. */

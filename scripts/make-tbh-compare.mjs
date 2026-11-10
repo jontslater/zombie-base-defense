@@ -9,7 +9,15 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(__dirname, "..");
-const TBH_REF = process.env.TBH_STRIP_REF ?? "/home/ubuntu/.cursor/projects/agent-repos-zombie-base-defense/assets/tbh-4.jpg";
+const TBH_REF =
+  process.env.TBH_STRIP_REF ??
+  "/home/ubuntu/.cursor/projects/agent-repos-zombie-base-defense/assets/tbh-1.jpg";
+const TBH_CROP = {
+  left: Number(process.env.TBH_CROP_LEFT ?? 360),
+  top: Number(process.env.TBH_CROP_TOP ?? 465),
+  width: Number(process.env.TBH_CROP_WIDTH ?? 300),
+  height: Number(process.env.TBH_CROP_HEIGHT ?? 65),
+};
 const OUR_PNG =
   process.env.OUR_STRIP_PNG ?? path.join(REPO, "docs/captures/strip/hitfeel-after-combat.png");
 const OUT = "/opt/cursor/artifacts/tbh-compare.png";
@@ -17,15 +25,8 @@ const OUT = "/opt/cursor/artifacts/tbh-compare.png";
 const STRIP_W = 400;
 const STRIP_H = 80;
 
-const tbhMeta = await sharp(TBH_REF).metadata();
-const cropTop = Math.max(0, (tbhMeta.height ?? 0) - STRIP_H - 24);
 const tbhStrip = await sharp(TBH_REF)
-  .extract({
-    left: Math.max(0, Math.floor(((tbhMeta.width ?? STRIP_W) - STRIP_W) / 2)),
-    top: cropTop,
-    width: Math.min(STRIP_W, tbhMeta.width ?? STRIP_W),
-    height: Math.min(STRIP_H, (tbhMeta.height ?? STRIP_H) - cropTop),
-  })
+  .extract(TBH_CROP)
   .resize(STRIP_W, STRIP_H, { fit: "cover" })
   .png()
   .toBuffer();
