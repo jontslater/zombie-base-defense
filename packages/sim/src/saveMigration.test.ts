@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SAVE_VERSION } from "./constants.js";
-import { loadFromJson } from "./index.js";
+import { createInitialState, loadFromJson } from "./index.js";
 import type { GameState } from "./types.js";
 import { emptyZombieKillsByKind } from "./zombieKinds.js";
 
@@ -76,5 +76,18 @@ describe("save migration v7 → v8 survivor roles/skills", () => {
     const skills = state.survivors[0]!.skills as Record<string, unknown>;
     expect(Object.keys(skills).length).toBeGreaterThan(0);
     expect(skills["damage_1"]).toBeUndefined();
+  });
+});
+
+describe("save migration v11 → v12 client settings", () => {
+  it("adds default strip FX toggles", () => {
+    const json = JSON.stringify({
+      version: 11,
+      savedAtMs: 1,
+      state: createInitialState(1),
+    });
+    const { settings } = loadFromJson(json);
+    expect(settings.stripHitFlash).toBe(true);
+    expect(settings.stripScreenShake).toBe(true);
   });
 });

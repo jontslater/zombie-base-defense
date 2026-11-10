@@ -54,8 +54,8 @@ async function boot() {
       createDemoCombatState(seed, demo === "boss" ? "boss" : "mid_fight"),
       Date.now(),
     );
-    const { state, savedAtMs } = loadFromJson(json);
-    runtime = { ...newRuntime(seed), state, lastSaveMs: savedAtMs };
+    const { state, savedAtMs, settings } = loadFromJson(json);
+    runtime = { ...newRuntime(seed), state, clientSettings: settings, lastSaveMs: savedAtMs };
   } else {
     runtime = await loadRuntime();
   }

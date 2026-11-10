@@ -23,3 +23,8 @@ export * from "./zombieKinds.js";
 export * from "./companions.js";
 export * from "./achievements.js";
 export * from "./progression.js";
+export * from "./clientSettings.js";
+export * from "./stripHitFeelLogic.js";
+export * from "./stripCombatEvents.js";
+export * from "./stripGround.js";
+export * from "./stripPresentation.js";

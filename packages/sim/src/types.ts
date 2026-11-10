@@ -1,3 +1,4 @@
+import type { ClientSettings } from "./clientSettings.js";
 import type {
   AchievementId,
   CompanionId,
@@ -147,4 +148,6 @@ export type SaveEnvelope = {
   version: number;
   savedAtMs: number;
   state: GameState;
+  /** Persisted client prefs (not used by sim). */
+  settings?: ClientSettings;
 };

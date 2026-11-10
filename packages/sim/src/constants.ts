@@ -50,9 +50,10 @@ export const OFFLINE_ABSENCE_MAX_MS = 30 * 24 * 60 * 60 * 1000;
 /**
  * v4: materials; v5: campaign; v6: normalizeGameState; v7: perimeter;
  * v8: survivor roles + ranked skills; v9: gear sockets/gem bag/affixes;
- * v10: offline raid rewards + gems wallet; v11: companions + comms milestones.
+ * v10: offline raid rewards + gems wallet; v11: companions + comms milestones;
+ * v12: client `settings` (strip hit flash / screen shake toggles).
  */
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 
 export const COMPANION_IDS = [
   "alarms_dog",
