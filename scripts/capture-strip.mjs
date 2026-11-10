@@ -56,7 +56,7 @@ await page.goto(`http://localhost:4173/?demo=${demo}`, { waitUntil: "networkidle
 await page.waitForTimeout(2000);
 await page.screenshot({ path: still1, clip: { x: 0, y: 0, width: 400, height: 80 } });
 
-await page.waitForTimeout(3200);
+await page.waitForTimeout(1800);
 await page.screenshot({ path: still2, clip: { x: 0, y: 0, width: 400, height: 80 } });
 
 await page.waitForTimeout(3300);

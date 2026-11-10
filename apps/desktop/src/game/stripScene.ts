@@ -6,37 +6,47 @@ import {
   deriveStripCombatFxEvents,
   perimeterUnlockedCount,
   stripCampaignTag,
+  stripContactShadowMetrics,
+  stripLocomotionOffset,
+  stripMeleeLungeDx,
   stripSurvivorSpriteKey,
+  stripUnitAnchorY,
   stripZombieKindAtSlot,
   stripZombieSpriteKey,
+  STRIP_GROUND_Y,
+  STRIP_STRUCTURE_SCALE,
+  STRIP_SURVIVOR_SCALE,
+  STRIP_ZOMBIE_BOSS_SCALE,
+  STRIP_ZOMBIE_SCALE,
   type StripCombatFxPrev,
   type StripCombatSnapshot,
   type StripSurvivorFramePhase,
 } from "@zbd/sim";
 import type { GameRuntime } from "./runtime";
+import { StripBackdrop } from "./stripBackdrop";
 import { StripHitFeel } from "./stripHitFeel";
 
-const SURVIVOR_SCALE = 0.52;
-const ZOMBIE_SCALE = 0.52;
-const STRUCTURE_SCALE = 0.42;
 const ZOMBIE_TINT = 0x6ecf5a;
 const ZOMBIE_BOSS_TINT = 0xc084fc;
-const ZOMBIE_BOSS_SCALE = 0.62;
 const CORE_HP_BAR_Y = 62;
 
 type ZombieSlot = {
   id: string;
   sprite: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Ellipse;
   baseX: number;
-  baseY: number;
+  baseAnchorY: number;
+  scale: number;
   boss: boolean;
 };
 
 type SurvivorSlot = {
   id: string;
   sprite: Phaser.GameObjects.Image;
+  shadow: Phaser.GameObjects.Ellipse;
   baseX: number;
-  baseY: number;
+  baseAnchorY: number;
+  scale: number;
   hpBack: Phaser.GameObjects.Rectangle;
   hpFill: Phaser.GameObjects.Rectangle;
 };
@@ -47,9 +57,11 @@ export class StripScene extends Phaser.Scene {
   private label!: Phaser.GameObjects.Text;
   private survivorSlots: SurvivorSlot[] = [];
   private companionSprite: Phaser.GameObjects.Image | null = null;
+  private companionShadow: Phaser.GameObjects.Ellipse | null = null;
   private zombieSlots: ZombieSlot[] = [];
   private wallSprites: Phaser.GameObjects.Image[] = [];
   private turretSprites: Phaser.GameObjects.Image[] = [];
+  private baseSprite: Phaser.GameObjects.Image | null = null;
   private hitSound?: Phaser.Sound.BaseSound;
   private lastHitAt = 0;
 
@@ -58,6 +70,7 @@ export class StripScene extends Phaser.Scene {
   private floatLayer!: Phaser.GameObjects.Container;
   private fxLayer!: Phaser.GameObjects.Container;
   private hitFeel!: StripHitFeel;
+  private backdrop!: StripBackdrop;
 
   constructor() {
     super("strip");
@@ -73,7 +86,9 @@ export class StripScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor("#0b0f14");
+    this.cameras.main.setBackgroundColor("#121820");
+    this.backdrop = new StripBackdrop(this);
+    this.backdrop.create();
 
     this.floatLayer = this.add.container(0, 0).setDepth(20);
     this.fxLayer = this.add.container(0, 0).setDepth(18);
@@ -110,6 +125,8 @@ export class StripScene extends Phaser.Scene {
 
   update() {
     this.hitFeel.tickFrame();
+    const snap = computeStripCombatSnapshot(this.rt.state);
+    this.backdrop.updateParallax(snap?.march01 ?? 0, snap?.swayRad ?? 0);
     this.applyUnitFxOffsets();
   }
 
@@ -139,8 +156,21 @@ export class StripScene extends Phaser.Scene {
     return "walk";
   }
 
+  private plantSprite(spr: Phaser.GameObjects.Image, x: number, scale: number) {
+    spr.setOrigin(0.5, 1);
+    spr.setScale(scale);
+    spr.setPosition(x, stripUnitAnchorY(scale));
+  }
+
+  private makeShadow(x: number, scale: number, isBoss: boolean): Phaser.GameObjects.Ellipse {
+    const m = stripContactShadowMetrics(scale, isBoss);
+    return this.add.ellipse(x, STRIP_GROUND_Y + 1, m.width, m.height, 0x000000, m.alpha).setDepth(2);
+  }
+
   private layoutStructures() {
-    this.add.image(378, 42, "sprites", "base").setScale(STRUCTURE_SCALE).setDepth(1);
+    if (this.baseSprite) this.baseSprite.destroy();
+    this.baseSprite = this.add.image(378, STRIP_GROUND_Y + 2, "sprites", "base");
+    this.baseSprite.setOrigin(0.5, 1).setScale(STRIP_STRUCTURE_SCALE).setDepth(1);
   }
 
   private layoutWallsAndTurrets() {
@@ -152,15 +182,16 @@ export class StripScene extends Phaser.Scene {
     const wallLevel = this.rt.state.upgrades.wall;
     for (let i = 0; i < wallLevel; i++) {
       const x = 318 - i * 22;
-      const spr = this.add.image(x, 44, "sprites", "wall").setScale(STRUCTURE_SCALE * 0.85).setDepth(0);
+      const spr = this.add.image(x, STRIP_GROUND_Y + 1, "sprites", "wall");
+      spr.setOrigin(0.5, 1).setScale(STRIP_STRUCTURE_SCALE * 0.85).setDepth(0);
       this.wallSprites.push(spr);
     }
 
     const turretLevel = this.rt.state.upgrades.turret;
     for (let i = 0; i < turretLevel; i++) {
       const x = 348 - i * 16;
-      const y = 28 + i * 4;
-      const spr = this.add.image(x, y, "sprites", "turret").setScale(STRUCTURE_SCALE * 0.55).setDepth(2);
+      const spr = this.add.image(x, STRIP_GROUND_Y - 12 - i * 3, "sprites", "turret");
+      spr.setOrigin(0.5, 1).setScale(STRIP_STRUCTURE_SCALE * 0.55).setDepth(2);
       this.turretSprites.push(spr);
     }
   }
@@ -168,13 +199,21 @@ export class StripScene extends Phaser.Scene {
   private clearCombatants() {
     for (const s of this.survivorSlots) {
       s.sprite.destroy();
+      s.shadow.destroy();
       s.hpBack.destroy();
       s.hpFill.destroy();
     }
-    for (const z of this.zombieSlots) z.sprite.destroy();
+    for (const z of this.zombieSlots) {
+      z.sprite.destroy();
+      z.shadow.destroy();
+    }
     if (this.companionSprite) {
       this.companionSprite.destroy();
       this.companionSprite = null;
+    }
+    if (this.companionShadow) {
+      this.companionShadow.destroy();
+      this.companionShadow = null;
     }
     this.survivorSlots = [];
     this.zombieSlots = [];
@@ -202,28 +241,35 @@ export class StripScene extends Phaser.Scene {
     const survivors = this.rt.state.survivors;
     const pose = this.stripPosePhase(snap);
     survivors.forEach((sv, i) => {
-      const x = 22 + i * 22;
-      const swayBase = snap?.swayRad ?? 0;
-      const y = 42 + Math.sin(swayBase + i * 0.7) * 1.2;
+      const x = 22 + i * 24;
+      const anchorY = stripUnitAnchorY(STRIP_SURVIVOR_SCALE);
+      const locPose = pose === "attack" ? "attack" : snap ? "idle" : "idle";
+      const loco = stripLocomotionOffset(snap, i, locPose);
+      loco.dx += stripMeleeLungeDx(sv.role, pose === "attack");
       const key = stripSurvivorSpriteKey(sv.role, i, pose);
-      const spr = this.add.image(x, y, "sprites", key).setScale(SURVIVOR_SCALE);
-      spr.setFlipX(false);
+      const spr = this.add.image(x + loco.dx, anchorY + loco.dy, "sprites", key);
+      this.plantSprite(spr, x + loco.dx, STRIP_SURVIVOR_SCALE);
+      spr.setScale(STRIP_SURVIVOR_SCALE * loco.scaleX, STRIP_SURVIVOR_SCALE * loco.scaleY);
       spr.setDepth(3);
+      const shadow = this.makeShadow(x, STRIP_SURVIVOR_SCALE, false);
       const hpW = 26;
+      const feetY = anchorY - 8 * STRIP_SURVIVOR_SCALE;
       const hpBack = this.add
-        .rectangle(x, y - 22, hpW, 4, 0x2a3544)
+        .rectangle(x, feetY - 18, hpW, 4, 0x2a3544)
         .setOrigin(0.5, 0.5)
         .setDepth(7);
       const ratio = Math.max(0, Math.min(1, sv.hp / Math.max(1, sv.maxHp)));
       const hpFill = this.add
-        .rectangle(x - hpW / 2, y - 22, hpW * ratio, 3, ratio > 0.35 ? 0x3d8bfd : 0xe74c3c)
+        .rectangle(x - hpW / 2, feetY - 18, hpW * ratio, 3, ratio > 0.35 ? 0x3d8bfd : 0xe74c3c)
         .setOrigin(0, 0.5)
         .setDepth(8);
       this.survivorSlots.push({
         id: `sv-${i}`,
         sprite: spr,
+        shadow,
         baseX: x,
-        baseY: y,
+        baseAnchorY: anchorY,
+        scale: STRIP_SURVIVOR_SCALE,
         hpBack,
         hpFill,
       });
@@ -233,18 +279,16 @@ export class StripScene extends Phaser.Scene {
       ? companionDef(this.rt.state.equippedCompanionId)
       : undefined;
     if (snap && ec && this.rt.state.companionsUnlocked[ec.id]) {
-      const cx = 22 + survivors.length * 22 + 18;
-      const swayBase = snap.swayRad;
-      const cy = 36 + Math.sin(swayBase * 0.6) * 1.2;
-      this.companionSprite = this.add
-        .image(cx, cy, "sprites", ec.spriteKey)
-        .setScale(0.22)
-        .setDepth(5);
+      const cx = 22 + survivors.length * 24 + 16;
+      const cScale = 0.26;
+      this.companionSprite = this.add.image(cx, stripUnitAnchorY(cScale), "sprites", ec.spriteKey);
+      this.companionSprite.setOrigin(0.5, 1).setScale(cScale).setDepth(5);
+      this.companionShadow = this.makeShadow(cx, cScale, false);
     }
 
     if (!snap) return;
 
-    const zxMin = 120;
+    const zxMin = 118;
     const baseX = 348;
     const spread =
       snap.isBoss && snap.zombiesMax <= 4 ? Math.min(42, baseX - zxMin) : Math.min(200, baseX - zxMin);
@@ -255,25 +299,33 @@ export class StripScene extends Phaser.Scene {
       const u = nVisible <= 1 ? 0.82 : i / Math.max(1, nVisible - 1);
       const xBase = zxMin + u * spread;
       const march =
-        Math.sin((snap.march01 + u * 0.37 + i * 0.09) * Math.PI * 2) * (snap.isBoss ? 2 : 4);
+        Math.sin((snap.march01 + u * 0.37 + i * 0.09) * Math.PI * 2) * (snap.isBoss ? 2 : 5);
       const x = Phaser.Math.Clamp(xBase + march, zxMin, baseX - 12);
-      const y = 42 + Math.sin(snap.swayRad * 0.8 + i * 1.1) * (snap.isBoss ? 1.5 : 2.5);
+      const boss = snap.isBoss && i === 0;
+      const scale = boss ? STRIP_ZOMBIE_BOSS_SCALE : STRIP_ZOMBIE_SCALE;
+      const anchorY = stripUnitAnchorY(scale);
+      const loco = stripLocomotionOffset(
+        snap,
+        i + 10,
+        zPose === "walk" ? "walk" : zPose === "attack" ? "attack" : "hurt",
+        boss,
+      );
       const kind = stripZombieKindAtSlot(snap, i, nVisible);
       const zKey = stripZombieSpriteKey(kind, zPose);
-      const spr = this.add
-        .image(x, y, "sprites", zKey)
-        .setScale(snap.isBoss ? ZOMBIE_BOSS_SCALE : ZOMBIE_SCALE);
+      const spr = this.add.image(x, anchorY, "sprites", zKey);
+      this.plantSprite(spr, x, scale);
+      spr.setScale(scale * loco.scaleX, scale * loco.scaleY);
       spr.setFlipX(true);
-      const boss = snap.isBoss && i === 0;
-      const tint = boss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT;
-      spr.setTint(tint);
+      spr.setTint(boss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT);
       spr.setDepth(boss ? 4 : 3);
-      if (snap.isBoss && i === 0) spr.setAlpha(0.98);
+      const shadow = this.makeShadow(x, scale, boss);
       this.zombieSlots.push({
         id: `z-${i}`,
         sprite: spr,
+        shadow,
         baseX: x,
-        baseY: y,
+        baseAnchorY: anchorY,
+        scale,
         boss,
       });
     }
@@ -287,9 +339,10 @@ export class StripScene extends Phaser.Scene {
       if (!slot) return;
       const key = stripSurvivorSpriteKey(sv.role, i, pose);
       slot.sprite.setTexture("sprites", key);
-      const swayBase = snap?.swayRad ?? 0;
-      slot.baseX = 22 + i * 22;
-      slot.baseY = 42 + Math.sin(swayBase + i * 0.7) * 1.2;
+      slot.baseX = 22 + i * 24;
+      const locPose = pose === "attack" ? "attack" : pose === "hurt" ? "hurt" : snap ? "idle" : "idle";
+      const loco = stripLocomotionOffset(snap, i, locPose);
+      void loco;
       const hpW = 26;
       const ratio = Math.max(0, Math.min(1, sv.hp / Math.max(1, sv.maxHp)));
       slot.hpFill.width = hpW * ratio;
@@ -298,7 +351,7 @@ export class StripScene extends Phaser.Scene {
 
     if (!snap) return;
     const zPose = this.stripZombiePosePhase(snap);
-    const zxMin = 120;
+    const zxMin = 118;
     const baseX = 348;
     const spread =
       snap.isBoss && snap.zombiesMax <= 4 ? Math.min(42, baseX - zxMin) : Math.min(200, baseX - zxMin);
@@ -313,31 +366,62 @@ export class StripScene extends Phaser.Scene {
       const u = nVisible <= 1 ? 0.82 : i / Math.max(1, nVisible - 1);
       const xBase = zxMin + u * spread;
       const march =
-        Math.sin((snap.march01 + u * 0.37 + i * 0.09) * Math.PI * 2) * (snap.isBoss ? 2 : 4);
+        Math.sin((snap.march01 + u * 0.37 + i * 0.09) * Math.PI * 2) * (snap.isBoss ? 2 : 5);
       slot.baseX = Phaser.Math.Clamp(xBase + march, zxMin, baseX - 12);
-      slot.baseY = 42 + Math.sin(snap.swayRad * 0.8 + i * 1.1) * (snap.isBoss ? 1.5 : 2.5);
       const kind = stripZombieKindAtSlot(snap, i, nVisible);
       slot.sprite.setTexture("sprites", stripZombieSpriteKey(kind, zPose));
     });
   }
 
   private applyUnitFxOffsets() {
+    const snap = computeStripCombatSnapshot(this.rt.state);
+
     for (const s of this.survivorSlots) {
       const fx = this.hitFeel.getUnitOffset(s.id);
+      const pose = this.stripPosePhase(snap);
+      const sv = this.rt.state.survivors[Number(s.id.split("-")[1])];
+      const locPose = pose === "attack" ? "attack" : pose === "hurt" ? "hurt" : "idle";
+      const loco = stripLocomotionOffset(snap, Number(s.id.split("-")[1]), locPose);
+      const lunge = sv ? stripMeleeLungeDx(sv.role, pose === "attack") : 0;
+      const x = s.baseX + fx.dx + loco.dx + lunge;
+      const y = s.baseAnchorY + loco.dy;
       if (!fx.frozen) {
-        s.sprite.setPosition(s.baseX + fx.dx, s.baseY + fx.dy);
-        s.hpBack.setPosition(s.baseX + fx.dx, s.baseY + fx.dy - 22);
-        s.hpFill.setPosition(s.baseX + fx.dx - 13, s.baseY + fx.dy - 22);
+        s.sprite.setPosition(x, y);
+        s.sprite.setScale(s.scale * loco.scaleX, s.scale * loco.scaleY);
+        const feetY = y - 8 * s.scale;
+        s.hpBack.setPosition(x, feetY - 18);
+        s.hpFill.setPosition(x - 13, feetY - 18);
+        s.shadow.setPosition(x, STRIP_GROUND_Y + 1);
       }
       this.hitFeel.applySpriteTint(s.sprite, s.id, 0xffffff);
     }
+
     for (const z of this.zombieSlots) {
       const fx = this.hitFeel.getUnitOffset(z.id);
+      const zPose = this.stripZombiePosePhase(snap);
+      const loco = stripLocomotionOffset(
+        snap,
+        Number(z.id.split("-")[1] ?? 0) + 10,
+        zPose === "walk" ? "walk" : zPose === "attack" ? "attack" : "hurt",
+        z.boss,
+      );
+      const x = z.baseX + fx.dx + loco.dx;
+      const y = z.baseAnchorY + loco.dy;
       if (!fx.frozen) {
-        z.sprite.setPosition(z.baseX + fx.dx, z.baseY + fx.dy);
+        z.sprite.setPosition(x, y);
+        z.sprite.setScale(z.scale * loco.scaleX, z.scale * loco.scaleY);
+        z.shadow.setPosition(x, STRIP_GROUND_Y + 1);
       }
       const tint = z.boss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT;
       this.hitFeel.applySpriteTint(z.sprite, z.id, tint);
+    }
+
+    if (this.companionSprite && this.companionShadow) {
+      const cx = 22 + this.rt.state.survivors.length * 24 + 16;
+      const cScale = 0.26;
+      const cy = stripUnitAnchorY(cScale);
+      this.companionSprite.setPosition(cx, cy);
+      this.companionShadow.setPosition(cx, STRIP_GROUND_Y + 1);
     }
   }
 
@@ -395,16 +479,16 @@ export class StripScene extends Phaser.Scene {
             ? {
                 id: frontZ.id,
                 x: frontZ.baseX,
-                y: frontZ.baseY,
+                y: frontZ.baseAnchorY,
                 sprite: frontZ.sprite,
                 boss: frontZ.boss,
               }
             : undefined,
           survivor: survSlot
-            ? { id: survSlot.id, x: survSlot.baseX, y: survSlot.baseY, sprite: survSlot.sprite }
+            ? { id: survSlot.id, x: survSlot.baseX, y: survSlot.baseAnchorY, sprite: survSlot.sprite }
             : undefined,
           attacker: atkSlot
-            ? { id: atkSlot.id, x: atkSlot.baseX, y: atkSlot.baseY, sprite: atkSlot.sprite }
+            ? { id: atkSlot.id, x: atkSlot.baseX, y: atkSlot.baseAnchorY, sprite: atkSlot.sprite }
             : undefined,
         });
       }
@@ -414,7 +498,8 @@ export class StripScene extends Phaser.Scene {
         const target = this.zombieSlots[this.zombieSlots.length - 1] ?? this.zombieSlots[0];
         if (target) {
           const killPts = 2 + Math.floor(state.wave * 0.5);
-          this.spawnCurrencyFloat(target.baseX, target.baseY - 8, killPts * killed);
+          const feetY = target.baseAnchorY - 8 * target.scale;
+          this.spawnCurrencyFloat(target.baseX, feetY, killPts * killed);
         }
       }
     }
@@ -459,7 +544,7 @@ export function createPhaserGame(parent: HTMLElement, _runtime: GameRuntime): Ph
     width: 400,
     height: 80,
     parent,
-    backgroundColor: "#0b0f14",
+    backgroundColor: "#121820",
     scene: [StripScene],
     scale: {
       mode: Phaser.Scale.NONE,

@@ -104,6 +104,10 @@ export class StripHitFeel {
     }
   }
 
+  getKnockbackPhase(id: string): "none" | "out" | "return" {
+    return this.unitFx.get(id)?.knockbackPhase ?? "none";
+  }
+
   getUnitOffset(id: string): { dx: number; dy: number; frozen: boolean; tintWhite: boolean } {
     const st = this.unitFx.get(id);
     if (!st) return { dx: 0, dy: 0, frozen: false, tintWhite: false };
