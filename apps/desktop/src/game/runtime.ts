@@ -30,12 +30,15 @@ import {
   type SocketGemCommand,
   type UnsocketGemCommand,
   type SetEquippedCompanionCommand,
+  DEFAULT_CLIENT_SETTINGS,
+  type ClientSettings,
 } from "@zbd/sim";
 
 const SAVE_KEY = "zbd_save_v1";
 
 export type GameRuntime = {
   state: GameState;
+  clientSettings: ClientSettings;
   playerId: string;
   relayClientId: string | null;
   lastSaveMs: number;
@@ -50,6 +53,7 @@ export function newRuntime(seed?: number): GameRuntime {
   const now = Date.now();
   return {
     state: createInitialState(seed ?? (now % 100000)),
+    clientSettings: { ...DEFAULT_CLIENT_SETTINGS },
     playerId: `local-${now}`,
     relayClientId: null,
     lastSaveMs: now,
@@ -65,10 +69,11 @@ export async function loadRuntime(): Promise<GameRuntime> {
   const raw = await readSaveRaw();
   if (!raw) return newRuntime();
   try {
-    const { state, savedAtMs } = loadFromJson(raw);
+    const { state, savedAtMs, settings } = loadFromJson(raw);
     const { state: withOffline, report } = applyOfflineProgress(state, savedAtMs, now);
     return {
       state: withOffline,
+      clientSettings: { ...settings },
       playerId: `local-${savedAtMs}`,
       relayClientId: null,
       lastSaveMs: now,
@@ -84,7 +89,7 @@ export async function loadRuntime(): Promise<GameRuntime> {
 
 export async function persistRuntime(rt: GameRuntime): Promise<void> {
   const now = Date.now();
-  const json = saveToJson(rt.state, now);
+  const json = saveToJson(rt.state, now, rt.clientSettings);
   await writeSaveRaw(json);
   rt.lastSaveMs = now;
 }

@@ -2,15 +2,19 @@ import Phaser from "phaser";
 import {
   companionDef,
   computeStripCombatSnapshot,
+  captureStripCombatFxPrev,
+  deriveStripCombatFxEvents,
   perimeterUnlockedCount,
   stripCampaignTag,
   stripSurvivorSpriteKey,
   stripZombieKindAtSlot,
   stripZombieSpriteKey,
+  type StripCombatFxPrev,
   type StripCombatSnapshot,
   type StripSurvivorFramePhase,
 } from "@zbd/sim";
 import type { GameRuntime } from "./runtime";
+import { StripHitFeel } from "./stripHitFeel";
 
 const SURVIVOR_SCALE = 0.52;
 const ZOMBIE_SCALE = 0.52;
@@ -20,26 +24,40 @@ const ZOMBIE_BOSS_TINT = 0xc084fc;
 const ZOMBIE_BOSS_SCALE = 0.62;
 const CORE_HP_BAR_Y = 62;
 
+type ZombieSlot = {
+  id: string;
+  sprite: Phaser.GameObjects.Image;
+  baseX: number;
+  baseY: number;
+  boss: boolean;
+};
+
+type SurvivorSlot = {
+  id: string;
+  sprite: Phaser.GameObjects.Image;
+  baseX: number;
+  baseY: number;
+  hpBack: Phaser.GameObjects.Rectangle;
+  hpFill: Phaser.GameObjects.Rectangle;
+};
+
 export class StripScene extends Phaser.Scene {
   private rt!: GameRuntime;
   private barHp!: Phaser.GameObjects.Rectangle;
   private label!: Phaser.GameObjects.Text;
-  private survivorSprites: Phaser.GameObjects.Image[] = [];
-  private survivorHpBars: { back: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle }[] =
-    [];
-  /** TBH companion: drawn above survivors/zombies during combat when equipped + unlocked. */
+  private survivorSlots: SurvivorSlot[] = [];
   private companionSprite: Phaser.GameObjects.Image | null = null;
-  private zombieSprites: Phaser.GameObjects.Image[] = [];
+  private zombieSlots: ZombieSlot[] = [];
   private wallSprites: Phaser.GameObjects.Image[] = [];
   private turretSprites: Phaser.GameObjects.Image[] = [];
   private hitSound?: Phaser.Sound.BaseSound;
   private lastHitAt = 0;
 
-  private prevTick = -1;
-  private prevCombatZombies = -1;
-  private prevSurvivorHp: number[] = [];
-  private prevCoreHp = -1;
+  private fxPrev: StripCombatFxPrev | null = null;
+  private layoutSig = "";
   private floatLayer!: Phaser.GameObjects.Container;
+  private fxLayer!: Phaser.GameObjects.Container;
+  private hitFeel!: StripHitFeel;
 
   constructor() {
     super("strip");
@@ -58,6 +76,8 @@ export class StripScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#0b0f14");
 
     this.floatLayer = this.add.container(0, 0).setDepth(20);
+    this.fxLayer = this.add.container(0, 0).setDepth(18);
+    this.hitFeel = new StripHitFeel(this, this.fxLayer, this.floatLayer, () => this.rt.clientSettings);
 
     this.layoutStructures();
 
@@ -85,20 +105,24 @@ export class StripScene extends Phaser.Scene {
     });
 
     this.resetStripTracking();
-    this.refresh();
+    this.refresh(true);
+  }
+
+  update() {
+    this.hitFeel.tickFrame();
+    this.applyUnitFxOffsets();
   }
 
   setRuntime(rt: GameRuntime) {
     this.rt = rt;
     this.resetStripTracking();
-    this.refresh();
+    this.refresh(true);
   }
 
   private resetStripTracking() {
-    this.prevTick = -1;
-    this.prevCombatZombies = -1;
-    this.prevSurvivorHp = [];
-    this.prevCoreHp = -1;
+    this.fxPrev = captureStripCombatFxPrev(this.rt.state);
+    this.layoutSig = "";
+    this.hitFeel?.reset();
   }
 
   private stripPosePhase(snap: StripCombatSnapshot | null): StripSurvivorFramePhase {
@@ -113,15 +137,6 @@ export class StripScene extends Phaser.Scene {
     if (p === 1) return "attack";
     if (p === 2) return "die";
     return "walk";
-  }
-
-  private hash01(seed: number, salt: number): number {
-    let x = (seed >>> 0) ^ (salt * 2654435761);
-    x ^= x >>> 16;
-    x = Math.imul(x, 2246822519);
-    x ^= x >>> 13;
-    x = Math.imul(x, 3266489917);
-    return (x >>> 0) / 4294967296;
   }
 
   private layoutStructures() {
@@ -151,22 +166,37 @@ export class StripScene extends Phaser.Scene {
   }
 
   private clearCombatants() {
-    for (const s of this.survivorSprites) s.destroy();
-    for (const b of this.survivorHpBars) {
-      b.back.destroy();
-      b.fill.destroy();
+    for (const s of this.survivorSlots) {
+      s.sprite.destroy();
+      s.hpBack.destroy();
+      s.hpFill.destroy();
     }
-    for (const z of this.zombieSprites) z.destroy();
+    for (const z of this.zombieSlots) z.sprite.destroy();
     if (this.companionSprite) {
       this.companionSprite.destroy();
       this.companionSprite = null;
     }
-    this.survivorSprites = [];
-    this.survivorHpBars = [];
-    this.zombieSprites = [];
+    this.survivorSlots = [];
+    this.zombieSlots = [];
   }
 
-  private layoutCombatants(snap: StripCombatSnapshot | null) {
+  private combatLayoutSignature(snap: StripCombatSnapshot | null): string {
+    const survivors = this.rt.state.survivors;
+    const roles = survivors.map((s) => s.role).join(",");
+    const hp = survivors.map((s) => Math.floor(s.hp)).join(",");
+    const z = snap
+      ? `${snap.isBoss}:${snap.zombiesRemaining}:${snap.framePhase}`
+      : "idle";
+    return `${survivors.length}|${roles}|${hp}|${z}`;
+  }
+
+  private layoutCombatants(snap: StripCombatSnapshot | null, force = false) {
+    const sig = this.combatLayoutSignature(snap);
+    if (!force && sig === this.layoutSig) {
+      this.syncCombatantFrames(snap);
+      return;
+    }
+    this.layoutSig = sig;
     this.clearCombatants();
 
     const survivors = this.rt.state.survivors;
@@ -179,8 +209,6 @@ export class StripScene extends Phaser.Scene {
       const spr = this.add.image(x, y, "sprites", key).setScale(SURVIVOR_SCALE);
       spr.setFlipX(false);
       spr.setDepth(3);
-      this.survivorSprites.push(spr);
-
       const hpW = 26;
       const hpBack = this.add
         .rectangle(x, y - 22, hpW, 4, 0x2a3544)
@@ -191,7 +219,14 @@ export class StripScene extends Phaser.Scene {
         .rectangle(x - hpW / 2, y - 22, hpW * ratio, 3, ratio > 0.35 ? 0x3d8bfd : 0xe74c3c)
         .setOrigin(0, 0.5)
         .setDepth(8);
-      this.survivorHpBars.push({ back: hpBack, fill: hpFill });
+      this.survivorSlots.push({
+        id: `sv-${i}`,
+        sprite: spr,
+        baseX: x,
+        baseY: y,
+        hpBack,
+        hpFill,
+      });
     });
 
     const ec = this.rt.state.equippedCompanionId
@@ -225,91 +260,85 @@ export class StripScene extends Phaser.Scene {
       const y = 42 + Math.sin(snap.swayRad * 0.8 + i * 1.1) * (snap.isBoss ? 1.5 : 2.5);
       const kind = stripZombieKindAtSlot(snap, i, nVisible);
       const zKey = stripZombieSpriteKey(kind, zPose);
-      const spr = this.add.image(x, y, "sprites", zKey).setScale(snap.isBoss ? ZOMBIE_BOSS_SCALE : ZOMBIE_SCALE);
+      const spr = this.add
+        .image(x, y, "sprites", zKey)
+        .setScale(snap.isBoss ? ZOMBIE_BOSS_SCALE : ZOMBIE_SCALE);
       spr.setFlipX(true);
-      spr.setTint(snap.isBoss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT);
-      spr.setDepth(snap.isBoss ? 4 : 3);
-      if (snap.isBoss) spr.setAlpha(0.98);
-
-      this.zombieSprites.push(spr);
-    }
-  }
-
-  private spawnMuzzleFlash(x: number, y: number) {
-    const flash = this.add
-      .image(x + 10, y - 6, "sprites", "muzzle")
-      .setScale(0.14)
-      .setFlipX(true)
-      .setDepth(12);
-    this.tweens.add({
-      targets: flash,
-      alpha: 0,
-      scale: flash.scaleX * 1.35,
-      duration: 90,
-      ease: "Cubic.Out",
-      onComplete: () => flash.destroy(),
-    });
-  }
-
-  private swingWeapon(survivor: Phaser.GameObjects.Image) {
-    this.tweens.add({
-      targets: survivor,
-      angle: 12,
-      duration: 70,
-      yoyo: true,
-      ease: "Sine.InOut",
-    });
-  }
-
-  private spawnHitParticles(x: number, y: number, isBoss: boolean) {
-    const n = isBoss ? 5 : 4;
-    for (let i = 0; i < n; i++) {
-      const p = this.add
-        .image(x, y - 2, "sprites", "hit")
-        .setScale(isBoss ? 0.12 : 0.09)
-        .setDepth(11);
-      const ang = (i / n) * Math.PI * 2 + y * 0.01;
-      const dist = 6 + (i % 3) * 3;
-      this.tweens.add({
-        targets: p,
-        x: x + Math.cos(ang) * dist,
-        y: y + Math.sin(ang) * dist - 4,
-        alpha: 0,
-        scale: p.scaleX * 0.3,
-        duration: 220 + i * 15,
-        ease: "Cubic.Out",
-        onComplete: () => p.destroy(),
+      const boss = snap.isBoss && i === 0;
+      const tint = boss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT;
+      spr.setTint(tint);
+      spr.setDepth(boss ? 4 : 3);
+      if (snap.isBoss && i === 0) spr.setAlpha(0.98);
+      this.zombieSlots.push({
+        id: `z-${i}`,
+        sprite: spr,
+        baseX: x,
+        baseY: y,
+        boss,
       });
     }
   }
 
-  private flashSprite(spr: Phaser.GameObjects.Image, flashColor: number, restoreTint: number) {
-    spr.setTint(flashColor);
-    this.time.delayedCall(90, () => spr.setTint(restoreTint));
+  private syncCombatantFrames(snap: StripCombatSnapshot | null) {
+    const pose = this.stripPosePhase(snap);
+    const survivors = this.rt.state.survivors;
+    survivors.forEach((sv, i) => {
+      const slot = this.survivorSlots[i];
+      if (!slot) return;
+      const key = stripSurvivorSpriteKey(sv.role, i, pose);
+      slot.sprite.setTexture("sprites", key);
+      const swayBase = snap?.swayRad ?? 0;
+      slot.baseX = 22 + i * 22;
+      slot.baseY = 42 + Math.sin(swayBase + i * 0.7) * 1.2;
+      const hpW = 26;
+      const ratio = Math.max(0, Math.min(1, sv.hp / Math.max(1, sv.maxHp)));
+      slot.hpFill.width = hpW * ratio;
+      slot.hpFill.fillColor = ratio > 0.35 ? 0x3d8bfd : 0xe74c3c;
+    });
+
+    if (!snap) return;
+    const zPose = this.stripZombiePosePhase(snap);
+    const zxMin = 120;
+    const baseX = 348;
+    const spread =
+      snap.isBoss && snap.zombiesMax <= 4 ? Math.min(42, baseX - zxMin) : Math.min(200, baseX - zxMin);
+    const nVisible = this.zombieSlots.length;
+    const nRemaining = snap.zombiesRemaining;
+    if (nVisible !== (snap.isBoss ? Math.min(nRemaining, 5) : Math.min(nRemaining, 10))) {
+      this.layoutCombatants(snap, true);
+      return;
+    }
+
+    this.zombieSlots.forEach((slot, i) => {
+      const u = nVisible <= 1 ? 0.82 : i / Math.max(1, nVisible - 1);
+      const xBase = zxMin + u * spread;
+      const march =
+        Math.sin((snap.march01 + u * 0.37 + i * 0.09) * Math.PI * 2) * (snap.isBoss ? 2 : 4);
+      slot.baseX = Phaser.Math.Clamp(xBase + march, zxMin, baseX - 12);
+      slot.baseY = 42 + Math.sin(snap.swayRad * 0.8 + i * 1.1) * (snap.isBoss ? 1.5 : 2.5);
+      const kind = stripZombieKindAtSlot(snap, i, nVisible);
+      slot.sprite.setTexture("sprites", stripZombieSpriteKey(kind, zPose));
+    });
   }
 
-  private spawnDamageFloat(x: number, y: number, amount: number, color: string) {
-    const t = this.add
-      .text(x, y - 16, `-${amount.toFixed(0)}`, {
-        fontSize: "10px",
-        color,
-        stroke: "#0b0f14",
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5, 1)
-      .setDepth(15);
-    this.floatLayer.add(t);
-    this.tweens.add({
-      targets: t,
-      y: y - 38,
-      alpha: 0,
-      duration: 520,
-      ease: "Cubic.Out",
-      onComplete: () => {
-        this.floatLayer.remove(t, false);
-        t.destroy();
-      },
-    });
+  private applyUnitFxOffsets() {
+    for (const s of this.survivorSlots) {
+      const fx = this.hitFeel.getUnitOffset(s.id);
+      if (!fx.frozen) {
+        s.sprite.setPosition(s.baseX + fx.dx, s.baseY + fx.dy);
+        s.hpBack.setPosition(s.baseX + fx.dx, s.baseY + fx.dy - 22);
+        s.hpFill.setPosition(s.baseX + fx.dx - 13, s.baseY + fx.dy - 22);
+      }
+      this.hitFeel.applySpriteTint(s.sprite, s.id, 0xffffff);
+    }
+    for (const z of this.zombieSlots) {
+      const fx = this.hitFeel.getUnitOffset(z.id);
+      if (!fx.frozen) {
+        z.sprite.setPosition(z.baseX + fx.dx, z.baseY + fx.dy);
+      }
+      const tint = z.boss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT;
+      this.hitFeel.applySpriteTint(z.sprite, z.id, tint);
+    }
   }
 
   private spawnCurrencyFloat(x: number, y: number, amount: number) {
@@ -337,21 +366,6 @@ export class StripScene extends Phaser.Scene {
     });
   }
 
-  private spawnProjectile(from: Phaser.GameObjects.Image, to: Phaser.GameObjects.Image) {
-    const bullet = this.add
-      .image(from.x + 8, from.y - 8, "sprites", "projectile")
-      .setScale(0.16)
-      .setDepth(9);
-    this.tweens.add({
-      targets: bullet,
-      x: to.x - 6,
-      y: to.y - 6,
-      duration: 140,
-      ease: "Linear",
-      onComplete: () => bullet.destroy(),
-    });
-  }
-
   private maybePlayHitSound() {
     const combat = this.rt.state.combat;
     if (!combat || !this.hitSound) return;
@@ -366,87 +380,57 @@ export class StripScene extends Phaser.Scene {
   private onStripTick() {
     const state = this.rt.state;
     const snap = computeStripCombatSnapshot(state);
-    const tick = state.tick;
+    const prev = this.fxPrev;
 
-    if (snap && this.prevTick >= 0 && tick > this.prevTick) {
-      const nHit = Math.min(3, this.survivorSprites.length);
-      for (let i = 0; i < nHit; i++) {
-        const h = this.hash01(tick, i * 7919);
-        if (h < 0.55) continue;
-        const from = this.survivorSprites[i];
-        const to =
-          this.zombieSprites[
-            Math.min(this.zombieSprites.length - 1, Math.floor(h * this.zombieSprites.length))
-          ];
-        if (!from || !to) continue;
-        const alt = this.hash01(tick, i * 503 + 17) > 0.42;
-        if (alt) {
-          this.swingWeapon(from);
-        } else {
-          this.spawnMuzzleFlash(from.x, from.y);
-          this.spawnProjectile(from, to);
-        }
-        this.spawnHitParticles(to.x, to.y - 4, snap.isBoss);
-        this.flashSprite(to, snap.isBoss ? 0xffdddd : 0xffffff, snap.isBoss ? ZOMBIE_BOSS_TINT : ZOMBIE_TINT);
-        this.spawnDamageFloat(to.x, to.y, snap.damagePerTick * (0.85 + h * 0.3), "#ff7a7a");
-      }
-
-    }
-
-    if (snap && this.prevCombatZombies >= 0 && snap.zombiesRemaining < this.prevCombatZombies) {
-      const killed = this.prevCombatZombies - snap.zombiesRemaining;
-      const target = this.zombieSprites[this.zombieSprites.length - 1] ?? this.zombieSprites[0];
-      if (target) {
-        const killPts = 2 + Math.floor(state.wave * 0.5);
-        const curDrop = killPts * killed;
-        this.spawnCurrencyFloat(target.x, target.y - 8, curDrop);
-        this.tweens.add({
-          targets: target,
-          alpha: 0,
-          scale: target.scaleX * 0.4,
-          angle: target.angle + (this.hash01(tick, 99) > 0.5 ? 40 : -40),
-          duration: 280,
-          ease: "Cubic.In",
-          onComplete: () => {
-            /* sprite cleared on next layout */
-          },
+    if (snap && prev) {
+      const events = deriveStripCombatFxEvents(prev, state, snap);
+      const frontZ = this.zombieSlots[0];
+      for (const ev of events) {
+        const attackerIdx = ev.kind === "zombie_hit" ? ev.attackerIndex : 0;
+        const atkSlot = this.survivorSlots[attackerIdx] ?? this.survivorSlots[0];
+        const survSlot =
+          ev.kind === "survivor_hurt" ? this.survivorSlots[ev.survivorIndex] : undefined;
+        this.hitFeel.applyEvent(ev, {
+          zombieFront: frontZ
+            ? {
+                id: frontZ.id,
+                x: frontZ.baseX,
+                y: frontZ.baseY,
+                sprite: frontZ.sprite,
+                boss: frontZ.boss,
+              }
+            : undefined,
+          survivor: survSlot
+            ? { id: survSlot.id, x: survSlot.baseX, y: survSlot.baseY, sprite: survSlot.sprite }
+            : undefined,
+          attacker: atkSlot
+            ? { id: atkSlot.id, x: atkSlot.baseX, y: atkSlot.baseY, sprite: atkSlot.sprite }
+            : undefined,
         });
       }
-    }
 
-    if (snap) {
-      const svs = state.survivors;
-      for (let i = 0; i < svs.length; i++) {
-        const prev = this.prevSurvivorHp[i];
-        const cur = svs[i]!.hp;
-        if (prev !== undefined && cur < prev) {
-          const spr = this.survivorSprites[i];
-          if (spr) {
-            this.spawnDamageFloat(spr.x, spr.y, prev - cur, "#ffaaaa");
-            this.flashSprite(spr, 0xff5555, 0xffffff);
-          }
+      if (prev.zombiesRemaining > (snap.zombiesRemaining ?? 0)) {
+        const killed = prev.zombiesRemaining - snap.zombiesRemaining;
+        const target = this.zombieSlots[this.zombieSlots.length - 1] ?? this.zombieSlots[0];
+        if (target) {
+          const killPts = 2 + Math.floor(state.wave * 0.5);
+          this.spawnCurrencyFloat(target.baseX, target.baseY - 8, killPts * killed);
         }
       }
-      if (this.prevCoreHp >= 0 && state.baseCoreHp < this.prevCoreHp) {
-        this.spawnDamageFloat(200, CORE_HP_BAR_Y - 6, this.prevCoreHp - state.baseCoreHp, "#ff9966");
-      }
     }
 
-    this.prevTick = tick;
-    this.prevCombatZombies = snap?.zombiesRemaining ?? -1;
-    this.prevSurvivorHp = state.survivors.map((s) => s.hp);
-    this.prevCoreHp = state.baseCoreHp;
-
+    this.fxPrev = captureStripCombatFxPrev(state);
     if (snap) this.maybePlayHitSound();
-    this.refresh();
+    this.refresh(false);
   }
 
-  refresh() {
+  refresh(forceLayout = false) {
     this.layoutWallsAndTurrets();
 
     const s = this.rt.state;
     const snap = computeStripCombatSnapshot(s);
-    this.layoutCombatants(snap);
+    this.layoutCombatants(snap, forceLayout);
+    this.applyUnitFxOffsets();
 
     const hpRatio = Math.max(0, s.baseCoreHp / s.baseCoreMaxHp);
     this.barHp.width = 360 * hpRatio;

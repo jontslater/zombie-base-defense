@@ -13,6 +13,8 @@ import {
 } from "./campaign.js";
 import { clampGem, sanitizeGearItem } from "./gearModel.js";
 import { normalizeGameState } from "./normalize.js";
+import { DEFAULT_CLIENT_SETTINGS, normalizeClientSettings } from "./clientSettings.js";
+import type { ClientSettings } from "./clientSettings.js";
 import type { GameState, SaveEnvelope } from "./types.js";
 import { defaultEquippedCompanion } from "./achievements.js";
 import { finalizeProgression } from "./progression.js";
@@ -119,11 +121,16 @@ export function createInitialState(seed = 12345): GameState {
   };
 }
 
-export function serializeSave(state: GameState, savedAtMs: number): SaveEnvelope {
+export function serializeSave(
+  state: GameState,
+  savedAtMs: number,
+  settings: ClientSettings = DEFAULT_CLIENT_SETTINGS,
+): SaveEnvelope {
   return {
     version: SAVE_VERSION,
     savedAtMs,
     state: structuredClone(state),
+    settings: { ...settings },
   };
 }
 
@@ -223,6 +230,7 @@ function migrateSurvivorsToRoles(state: GameState): void {
  * v9: gear sockets, gems, affix lines; `gemInventory` on save state.
  * v10: offline raid rewards + `gems` wallet.
  * v11: companions, comms milestones, zombie-kind kill tallies.
+ * v12: envelope `settings` for strip FX toggles.
  */
 function migrateSave(env: SaveEnvelope): void {
   const prevVersion = env.version;
@@ -365,6 +373,15 @@ function migrateSave(env: SaveEnvelope): void {
     env.state = finalizeProgression(env.state);
   }
 
+  if (prevVersion < 12) {
+    env.settings = normalizeClientSettings(env.settings);
+  }
+  if (!env.settings) {
+    env.settings = { ...DEFAULT_CLIENT_SETTINGS };
+  } else {
+    env.settings = normalizeClientSettings(env.settings);
+  }
+
   const st = env.state;
   if (!st.meta) {
     st.meta = {
@@ -407,11 +424,23 @@ function migrateSave(env: SaveEnvelope): void {
   }
 }
 
-export function saveToJson(state: GameState, savedAtMs: number): string {
-  return JSON.stringify(serializeSave(state, savedAtMs));
+export function saveToJson(
+  state: GameState,
+  savedAtMs: number,
+  settings: ClientSettings = DEFAULT_CLIENT_SETTINGS,
+): string {
+  return JSON.stringify(serializeSave(state, savedAtMs, settings));
 }
 
-export function loadFromJson(json: string): { state: GameState; savedAtMs: number } {
+export function loadFromJson(json: string): {
+  state: GameState;
+  savedAtMs: number;
+  settings: ClientSettings;
+} {
   const env = parseSave(json);
-  return { state: env.state, savedAtMs: env.savedAtMs };
+  return {
+    state: env.state,
+    savedAtMs: env.savedAtMs,
+    settings: env.settings ?? { ...DEFAULT_CLIENT_SETTINGS },
+  };
 }
