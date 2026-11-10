@@ -3,7 +3,9 @@ import {
   STRIP_GROUND_Y,
   STRIP_SURVIVOR_SCALE,
   stripFeetOnGround,
+  stripHpBarCenterY,
   stripSettledAnchorY,
+  stripSpriteTopY,
   stripUnitAnchorY,
 } from "./stripGround.js";
 
@@ -21,5 +23,12 @@ describe("stripGround planting", () => {
     const done = stripSettledAnchorY(base, 0, "none", 0);
     expect(done.settled).toBe(true);
     expect(stripFeetOnGround(done.y, STRIP_SURVIVOR_SCALE, STRIP_GROUND_Y)).toBe(true);
+  });
+
+  it("places HP bar above sprite top, not over the body", () => {
+    const anchor = stripUnitAnchorY(STRIP_SURVIVOR_SCALE);
+    const top = stripSpriteTopY(anchor, STRIP_SURVIVOR_SCALE);
+    const barY = stripHpBarCenterY(anchor, STRIP_SURVIVOR_SCALE);
+    expect(barY).toBeLessThan(top - 2);
   });
 });

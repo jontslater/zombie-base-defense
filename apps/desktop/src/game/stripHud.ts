@@ -5,8 +5,6 @@ import type { StripCombatSnapshot } from "@zbd/sim";
 export class StripHud {
   private chipCoin!: Phaser.GameObjects.Container;
   private chipWave!: Phaser.GameObjects.Container;
-  private coreFill!: Phaser.GameObjects.Rectangle;
-
   constructor(private scene: Phaser.Scene) {}
 
   create() {
@@ -29,11 +27,6 @@ export class StripHud {
     waveText.name = "wave";
     this.chipWave.add([waveBg, waveText]);
 
-    this.scene.add.rectangle(0, 77, 400, 3, 0x2a1820).setOrigin(0, 0.5).setDepth(30);
-    this.coreFill = this.scene.add
-      .rectangle(0, 77, 400, 2, 0xe85d6a)
-      .setOrigin(0, 0.5)
-      .setDepth(31);
   }
 
   update(state: GameState, snap: StripCombatSnapshot | null) {
@@ -42,9 +35,6 @@ export class StripHud {
     const wave = this.chipWave.getByName("wave") as Phaser.GameObjects.Text;
     const boss = snap?.isBoss ? " ★" : "";
     wave.setText(`W${state.wave}${boss}`);
-    const ratio = Math.max(0, state.baseCoreHp / Math.max(1, state.baseCoreMaxHp));
-    this.coreFill.width = 400 * ratio;
-    this.coreFill.fillColor = ratio > 0.35 ? 0x5cd65c : 0xe85d6a;
   }
 
   private formatCoin(n: number): string {

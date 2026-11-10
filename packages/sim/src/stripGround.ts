@@ -2,15 +2,16 @@ import type { StripCombatSnapshot } from "./stripSnapshot.js";
 import type { SurvivorRoleId } from "./survivorRoles.js";
 
 /** Visual floor line in the 400×80 strip (feet rest here). Render-only. */
-export const STRIP_GROUND_Y = 52;
+export const STRIP_GROUND_Y = 58;
 
 /** Source pixels trimmed from the bottom of 64×64 atlas frames (empty padding). */
 export const STRIP_FOOT_TRIM_SOURCE_PX = 8;
 
-/** ~30–32px tall units in an 80px strip (64px source frames). */
-export const STRIP_SURVIVOR_SCALE = 0.5;
-export const STRIP_ZOMBIE_SCALE = 0.5;
-export const STRIP_ZOMBIE_BOSS_SCALE = 0.62;
+/** ~44–48px tall units in an 80px strip (64px source frames). */
+export const STRIP_SURVIVOR_SCALE = 0.72;
+export const STRIP_ZOMBIE_SCALE = 0.7;
+export const STRIP_ZOMBIE_BOSS_SCALE = 0.82;
+export const STRIP_UNIT_FRAME_PX = 64;
 export const STRIP_STRUCTURE_SCALE = 0.44;
 
 /** Bottom anchor Y so visible feet sit on `STRIP_GROUND_Y`. */
@@ -72,6 +73,22 @@ export function stripMeleeLungeDx(role: SurvivorRoleId, attacking: boolean): num
   if (role === "brawler") return 4;
   if (role === "warden") return 3;
   return 2;
+}
+
+export function stripSpriteTopY(anchorY: number, scale: number, framePx = STRIP_UNIT_FRAME_PX): number {
+  return anchorY - framePx * scale;
+}
+
+/** HP bar sits above sprite top with a small gap (does not cross body). */
+export function stripHpBarCenterY(
+  anchorY: number,
+  scale: number,
+  gapPx = 3,
+  barHeightPx = 3,
+  framePx = STRIP_UNIT_FRAME_PX,
+): number {
+  const top = stripSpriteTopY(anchorY, scale, framePx);
+  return top - gapPx - barHeightPx / 2;
 }
 
 export function stripContactShadowMetrics(scale: number, isBoss: boolean): { width: number; height: number; alpha: number } {

@@ -16,20 +16,28 @@ export function stripHordePresentation(
 }
 
 export function stripSurvivorSpacingPx(survivorCount: number): number {
-  const teamSpan = 158;
-  return Math.min(36, Math.max(28, Math.floor(teamSpan / Math.max(1, survivorCount))));
+  const teamSpan = 128;
+  return Math.min(30, Math.max(26, Math.floor(teamSpan / Math.max(1, survivorCount))));
 }
 
-/** Fixed X slots for visible zombies (front = index 0 toward heroes). */
+/** Melee line: front zombie meets survivors near strip center (~x 195). */
+export const STRIP_MELEE_CONTACT_X = 196;
+
 export function stripZombieSlotX(
   slotIndex: number,
   visibleCount: number,
   isBoss: boolean,
 ): number {
-  const frontX = isBoss ? 268 : 248;
-  const step = isBoss ? 34 : 32;
+  const frontX = isBoss ? STRIP_MELEE_CONTACT_X + 6 : STRIP_MELEE_CONTACT_X;
+  const step = isBoss ? 30 : 28;
   const back = frontX + Math.max(0, visibleCount - 1 - slotIndex) * step;
-  return Math.min(340, back);
+  return Math.min(310, back);
+}
+
+export function stripSurvivorStartX(survivorCount: number): number {
+  const spacing = stripSurvivorSpacingPx(survivorCount);
+  const span = spacing * Math.max(0, survivorCount - 1);
+  return Math.max(8, STRIP_MELEE_CONTACT_X - 24 - span);
 }
 
 export function stripUnitDisplayHeightPx(scale: number, frameSource = 64): number {

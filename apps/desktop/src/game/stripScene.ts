@@ -6,10 +6,12 @@ import {
   deriveStripCombatFxEvents,
   stripContactShadowMetrics,
   stripHordePresentation,
+  stripHpBarCenterY,
   stripLocomotionOffset,
   stripMeleeLungeDx,
   stripSurvivorSpacingPx,
   stripSurvivorSpriteKey,
+  stripSurvivorStartX,
   stripUnitAnchorY,
   stripZombieKindAtSlot,
   stripZombieSlotX,
@@ -25,6 +27,7 @@ import {
 } from "@zbd/sim";
 import type { GameRuntime } from "./runtime";
 import { StripBackdrop } from "./stripBackdrop";
+import { StripCorePanel } from "./stripCorePanel";
 import { StripHitFeel } from "./stripHitFeel";
 import { StripHud } from "./stripHud";
 
@@ -70,7 +73,6 @@ export class StripScene extends Phaser.Scene {
   private hordeBadge: Phaser.GameObjects.Text | null = null;
   private wallSprites: Phaser.GameObjects.Image[] = [];
   private turretSprites: Phaser.GameObjects.Image[] = [];
-  private baseSprite: Phaser.GameObjects.Image | null = null;
   private hitSound?: Phaser.Sound.BaseSound;
   private lastHitAt = 0;
 
@@ -81,6 +83,7 @@ export class StripScene extends Phaser.Scene {
   private hitFeel!: StripHitFeel;
   private backdrop!: StripBackdrop;
   private hud!: StripHud;
+  private corePanel!: StripCorePanel;
 
   constructor() {
     super("strip");
@@ -101,6 +104,8 @@ export class StripScene extends Phaser.Scene {
     this.backdrop.create();
     this.hud = new StripHud(this);
     this.hud.create();
+    this.corePanel = new StripCorePanel(this);
+    this.corePanel.create();
 
     this.floatLayer = this.add.container(0, 0).setDepth(20);
     this.fxLayer = this.add.container(0, 0).setDepth(18);
@@ -169,7 +174,7 @@ export class StripScene extends Phaser.Scene {
   }
 
   private addUnitHpBar(x: number, anchorY: number, scale: number, ratio: number, ally: boolean) {
-    const top = anchorY - 8 * scale - 14;
+    const top = stripHpBarCenterY(anchorY, scale, 3, UNIT_HP_H);
     const back = this.add
       .rectangle(x, top, UNIT_HP_W, UNIT_HP_H, 0x1a1510, 0.85)
       .setOrigin(0.5, 0.5)
@@ -183,9 +188,7 @@ export class StripScene extends Phaser.Scene {
   }
 
   private layoutStructures() {
-    if (this.baseSprite) this.baseSprite.destroy();
-    this.baseSprite = this.add.image(378, STRIP_GROUND_Y - 5, "sprites", "base");
-    this.baseSprite.setOrigin(0.5, 1).setScale(STRIP_STRUCTURE_SCALE).setDepth(1);
+    /* base drawn in StripCorePanel */
   }
 
   private layoutWallsAndTurrets() {
@@ -266,10 +269,11 @@ export class StripScene extends Phaser.Scene {
 
     const survivors = this.rt.state.survivors;
     const spacing = stripSurvivorSpacingPx(survivors.length);
+    const teamX0 = stripSurvivorStartX(survivors.length);
     const pose = this.stripPosePhase(snap);
 
     survivors.forEach((sv, i) => {
-      const x = 18 + i * spacing;
+      const x = teamX0 + i * spacing;
       const anchorY = stripUnitAnchorY(STRIP_SURVIVOR_SCALE);
       const locPose = pose === "attack" ? "attack" : snap ? "idle" : "idle";
       const loco = stripLocomotionOffset(snap, i, locPose);
@@ -300,7 +304,7 @@ export class StripScene extends Phaser.Scene {
       : undefined;
     if (snap && ec && this.rt.state.companionsUnlocked[ec.id]) {
       const cScale = 0.24;
-      const cx = 16 + survivors.length * spacing + 10;
+      const cx = teamX0 + survivors.length * spacing + 8;
       this.companionSprite = this.add.image(cx, stripUnitAnchorY(cScale), "sprites", ec.spriteKey);
       this.companionSprite.setOrigin(0.5, 1).setScale(cScale).setTint(0xfff8f0).setDepth(5);
       this.companionShadow = this.makeShadow(cx, cScale, false);
@@ -384,7 +388,7 @@ export class StripScene extends Phaser.Scene {
       if (!slot) return;
       const key = stripSurvivorSpriteKey(sv.role, i, pose);
       slot.sprite.setTexture("sprites", key);
-      slot.baseX = 18 + i * spacing;
+      slot.baseX = stripSurvivorStartX(survivors.length) + i * spacing;
       const ratio = Math.max(0, Math.min(1, sv.hp / Math.max(1, sv.maxHp)));
       slot.hpFill.width = UNIT_HP_W * ratio;
       slot.hpFill.fillColor = ratio > 0.35 ? SURVIVOR_HP_COLOR : SURVIVOR_HP_LOW;
@@ -426,7 +430,7 @@ export class StripScene extends Phaser.Scene {
       const lunge = sv ? stripMeleeLungeDx(sv.role, pose === "attack") : 0;
       const x = s.baseX + fx.dx + loco.dx + lunge;
       const y = s.baseAnchorY + loco.dy;
-      const top = y - 8 * s.scale - 14;
+      const top = stripHpBarCenterY(y, s.scale, 3, UNIT_HP_H);
       if (!fx.frozen) {
         s.sprite.setPosition(x, y);
         s.sprite.setScale(s.scale * loco.scaleX, s.scale * loco.scaleY);
@@ -448,7 +452,7 @@ export class StripScene extends Phaser.Scene {
       );
       const x = z.baseX + fx.dx + loco.dx;
       const y = z.baseAnchorY + loco.dy;
-      const top = y - 8 * z.scale - 14;
+      const top = stripHpBarCenterY(y, z.scale, 3, UNIT_HP_H);
       if (!fx.frozen) {
         z.sprite.setPosition(x, y);
         z.sprite.setScale(z.scale * loco.scaleX, z.scale * loco.scaleY);
@@ -464,7 +468,7 @@ export class StripScene extends Phaser.Scene {
       const survivors = this.rt.state.survivors.length;
       const spacing = stripSurvivorSpacingPx(survivors);
       const cScale = 0.24;
-      const cx = 16 + survivors * spacing + 10;
+      const cx = stripSurvivorStartX(survivors) + survivors * spacing + 8;
       const cy = stripUnitAnchorY(cScale);
       this.companionSprite.setPosition(cx, cy);
       this.companionShadow.setPosition(cx, STRIP_GROUND_Y - 4);
@@ -563,6 +567,7 @@ export class StripScene extends Phaser.Scene {
     this.layoutCombatants(snap, forceLayout);
     this.applyUnitFxOffsets();
     this.hud.update(s, snap);
+    this.corePanel.update(s.baseCoreHp, s.baseCoreMaxHp);
   }
 }
 

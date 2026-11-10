@@ -12,11 +12,16 @@ const REPO = path.resolve(__dirname, "..");
 const TBH_REF =
   process.env.TBH_STRIP_REF ??
   "/home/ubuntu/.cursor/projects/agent-repos-zombie-base-defense/assets/tbh-1.jpg";
+/**
+ * tbh-1.jpg 1920×1080 strip box 675,862 → 1245,995 (570×133).
+ * Default top 898: same horizontal box; +36px matches visible combat strip on this asset
+ * (862 alone crops forest canopy in automated tests). Override via TBH_CROP_TOP=862.
+ */
 const TBH_CROP = {
-  left: Number(process.env.TBH_CROP_LEFT ?? 360),
-  top: Number(process.env.TBH_CROP_TOP ?? 465),
-  width: Number(process.env.TBH_CROP_WIDTH ?? 300),
-  height: Number(process.env.TBH_CROP_HEIGHT ?? 65),
+  left: Number(process.env.TBH_CROP_LEFT ?? 675),
+  top: Number(process.env.TBH_CROP_TOP ?? 898),
+  width: Number(process.env.TBH_CROP_WIDTH ?? 570),
+  height: Number(process.env.TBH_CROP_HEIGHT ?? 97),
 };
 const OUR_PNG =
   process.env.OUR_STRIP_PNG ?? path.join(REPO, "docs/captures/strip/hitfeel-after-combat.png");
